@@ -1,0 +1,9 @@
+*.log
+.DS_Store
+Thumbs.db
+.env
+.env.*
+node_modules/
+coverage/
+secret*
+*credential*
