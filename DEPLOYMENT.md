@@ -1,5 +1,9 @@
 # 部署與回復
 
+正式 Pages：`https://showbao.github.io/asset-record-web/`
+
+正式 Apps Script Web App：`https://script.google.com/macros/s/AKfycbwFgZfrzNI-dGwoDuaGBGlVh5QVAsviPbC_TPkhZfejiPFaSEAbBVpNrcdHLOnS7bIa/exec`
+
 ## GitHub Pages
 
 1. 建立公開儲存庫 `asset-record-web`，預設分支 `main`。
@@ -7,6 +11,8 @@
 3. 在 `docs/config.js` 填入正式 Apps Script Web App `/exec` URL；不得填入金鑰。
 4. Repository Settings → Pages → Deploy from a branch，選擇 `main` 與 `/docs`。
 5. 從實際 Pages 網域輸入一次性金鑰，驗證 POST 經 `script.googleusercontent.com` 重新導向後仍可讀取。
+
+2026-07-15 已確認錯誤金鑰可由正式 Pages 網域穩定讀取為 `AUTH_INVALID`，不是 CORS 或網路錯誤。
 
 正式切換前需在桌面與手機寬度驗證全部必要操作，以及未授權、錯誤金鑰、超賣、軟刪除／還原與待重算警告。
 

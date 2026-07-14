@@ -2,6 +2,8 @@
 
 「資產記錄」v8.3 的繁體中文靜態操作介面。正式發布來源為 `main/docs`，不需要建置工具或 GitHub Actions。
 
+正式網站：https://showbao.github.io/asset-record-web/
+
 此公開儲存庫只包含 HTML、CSS、JavaScript 與文件；Apps Script、試算表資料及 API 金鑰不得加入版本控制。
 
 ## 本機預覽
