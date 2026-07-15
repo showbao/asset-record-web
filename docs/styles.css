@@ -80,6 +80,7 @@ table { width: 100%; border-collapse: collapse; white-space: nowrap; }
 th, td { padding: .8rem .75rem; border-bottom: 1px solid #e8ebe7; text-align: left; font-size: .84rem; }
 th { position: sticky; top: 0; z-index: 1; color: var(--muted); background: #faf9f4; font-size: .73rem; letter-spacing: .04em; }
 td.numeric { font-variant-numeric: tabular-nums; text-align: right; }
+#performanceTable th, #performanceTable td { text-align: center; }
 .row-actions { display: flex; gap: .35rem; }
 .row-actions button { padding: .35rem .6rem; font-size: .75rem; }
 .danger { color: var(--danger); }

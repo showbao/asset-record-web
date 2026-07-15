@@ -1,4 +1,4 @@
-# 資產記錄 Web API v8.3
+# 資產記錄 Web API v8.3.1
 
 ## 傳輸格式
 
@@ -15,6 +15,8 @@
 ```
 
 回應固定包含 `success`、`code`、`message`、`data`、`version`、`timestamp`、`requestId`。業務成功或失敗依 `success` 與 `code` 判斷，不依 HTTP 狀態碼判斷。日期為 `YYYY-MM-DD`，時間包含 `+08:00`。
+
+績效 API 的數值欄位只回傳有限 `number` 或 `null`，日期欄位只回傳 ISO 字串或 `null`。`Date` 不得轉為時間戳記型績效數值；標的績效僅保留單一 `xirr`，對應 Sheet 的「XIRR（年化）」欄。
 
 `GET` 只回傳版本、服務狀態與伺服器時間，不回傳資產資料。
 

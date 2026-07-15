@@ -2,10 +2,10 @@
   'use strict';
 
   var api = window.AssetRecordApi;
+  var uiFormat = window.AssetRecordUiFormat;
   var state = { view: 'overview', page: { performance: 1, assets: 1, transactions: 1, cashflows: 1 }, editor: null };
   var money = new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 0 });
   var decimal = new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 4 });
-  var percent = new Intl.NumberFormat('zh-TW', { style: 'percent', maximumFractionDigits: 2 });
 
   function byId(id) { return document.getElementById(id); }
   function node(tag, className, text) {
@@ -21,6 +21,8 @@
   }
   function valueOrDash(value, formatter) { return value == null || value === '' ? '—' : (formatter || String)(value); }
   function moneyText(value) { return valueOrDash(value, function (number) { return 'NT$ ' + money.format(number); }); }
+  function percentText(value) { return uiFormat.percentText(value); }
+  function currencyText(value, currency) { return uiFormat.currencyText(value, currency); }
   function dateTimeText(value) { return value ? String(value).replace('T', ' ').replace('+08:00', '') : '—'; }
   function errorMessage(error) { return error && error.message ? error.message : '操作失敗'; }
 
@@ -117,9 +119,9 @@
   function renderMetrics(summary) {
     var cards = [
       ['投資淨資產', moneyText(summary.netAssetTwd)], ['外部淨投入', moneyText(summary.externalNetContributionTwd)],
-      ['累積投資成果', moneyText(summary.investmentResultTwd)], ['投資組合 XIRR', valueOrDash(summary.xirr, percent.format)],
+      ['累積投資成果', moneyText(summary.investmentResultTwd)], ['投資組合 XIRR', percentText(summary.xirr)],
       ['投資部位市值', moneyText(summary.marketValueTwd)], ['投資池現金', moneyText(summary.cashTwd)],
-      ['累積總損益', moneyText(summary.totalPnlTwd)], ['整體投資報酬率', valueOrDash(summary.totalReturn, percent.format)]
+      ['累積總損益', moneyText(summary.totalPnlTwd)], ['整體投資報酬率', percentText(summary.totalReturn)]
     ];
     var target = byId('metricCards'); target.replaceChildren();
     cards.forEach(function (item) {
@@ -135,7 +137,7 @@
       var row = node('div', 'allocation-row');
       row.appendChild(node('span', '', item[0]));
       var track = node('div', 'allocation-track'); var fill = node('div', 'allocation-fill'); fill.style.width = Math.min(100, ratio * 100) + '%'; track.appendChild(fill); row.appendChild(track);
-      row.appendChild(node('span', '', item[1] == null ? '—' : percent.format(ratio))); target.appendChild(row);
+      row.appendChild(node('span', '', item[1] == null ? '—' : percentText(ratio))); target.appendChild(row);
     });
   }
 
@@ -172,9 +174,9 @@
       var result = await api.call('getPerformanceList', { params: params, dedupeKey: 'performance' }); applyMeta(result.data.meta);
       renderTable('performanceTable', [
         { key: 'category', label: '類別' }, { key: 'code', label: '代號' }, { key: 'name', label: '名稱' }, { key: 'status', label: '狀態' },
-        { key: 'marketValueTwd', label: '目前市值', numeric: true, format: moneyText }, { key: 'totalPnlTwd', label: '累積損益', numeric: true, format: moneyText },
-        { key: 'transactionReturn', label: '交易報酬率', numeric: true, format: function (value) { return valueOrDash(value, percent.format); } },
-        { key: 'xirr', label: 'XIRR', numeric: true, format: function (value) { return valueOrDash(value, percent.format); } }, { key: 'priceDate', label: '價格日期' }
+        { key: 'marketValueTwd', label: '目前市值（TWD）', numeric: true, format: moneyText }, { key: 'totalPnlTwd', label: '累積損益（TWD）', numeric: true, format: moneyText },
+        { key: 'transactionReturn', label: '交易報酬率', numeric: true, format: percentText },
+        { key: 'xirr', label: 'XIRR（年化）', numeric: true, format: percentText }, { key: 'priceDate', label: '價格日期' }
       ], result.data.items);
       renderPager('performancePager', result.data, loadPerformance); setSync('已更新');
     } catch (error) { showError(error); }
@@ -186,7 +188,7 @@
       var params = paramsFromForm(byId('assetFilters')); params.page = state.page.assets; params.pageSize = 25;
       var result = await api.call('listAssets', { params: params, dedupeKey: 'assets' }); applyMeta(result.data.meta);
       renderTable('assetTable', [
-        { key: 'code', label: '代號' }, { key: 'name', label: '名稱' }, { key: 'type', label: '類型' }, { key: 'tradeCurrency', label: '交易幣別' },
+        { key: 'code', label: '代號' }, { key: 'name', label: '名稱' }, { key: 'type', label: '類型', format: uiFormat.assetTypeText }, { key: 'tradeCurrency', label: '交易幣別' },
         { key: 'navCurrency', label: '淨值幣別' }, { key: 'enabled', label: '狀態', format: function (value) { return value ? '啟用' : '停用'; } }, { key: 'note', label: '備註' }
       ], result.data.items, function (row) {
         var buttons = [actionButton('修改', '', function () { openEditor('asset', 'update', row); })];
@@ -203,10 +205,10 @@
       var params = paramsFromForm(byId('transactionFilters')); params.page = state.page.transactions; params.pageSize = 25;
       var result = await api.call('listTransactions', { params: params, dedupeKey: 'transactions' }); applyMeta(result.data.meta);
       renderTable('transactionTable', [
-        { key: 'date', label: '日期' }, { key: 'id', label: '交易 ID' }, { key: 'assetCode', label: '標的' }, { key: 'type', label: '類型' },
+        { key: 'date', label: '日期' }, { key: 'id', label: '交易 ID' }, { key: 'assetCode', label: '標的' }, { key: 'type', label: '類型', format: uiFormat.transactionTypeText },
         { key: 'quantity', label: '數量', numeric: true, format: function (value) { return valueOrDash(value, decimal.format); } },
-        { key: 'price', label: '單價', numeric: true, format: function (value) { return valueOrDash(value, decimal.format); } },
-        { key: 'actualAmount', label: '實際入出金額', numeric: true, format: function (value) { return valueOrDash(value, decimal.format); } },
+        { key: 'price', label: '單價', numeric: true, format: function (value, row) { return currencyText(value, row.tradeCurrency); } },
+        { key: 'actualAmount', label: '實際入出金額', numeric: true, format: function (value, row) { return currencyText(value, row.tradeCurrency); } },
         { key: 'deletedAt', label: '狀態', format: function (value) { return value ? '已刪除' : '有效'; } }, { key: 'note', label: '備註' }
       ], result.data.items, function (row) {
         if (row.deletedAt) return [actionButton('還原', '', function () { confirmAction('確定還原這筆交易？', 'restoreTransaction', { id: row.id }, loadTransactions); })];
@@ -222,9 +224,9 @@
       var params = paramsFromForm(byId('cashFlowFilters')); params.page = state.page.cashflows; params.pageSize = 25;
       var result = await api.call('listExternalCashFlows', { params: params, dedupeKey: 'cashflows' }); applyMeta(result.data.meta);
       renderTable('cashFlowTable', [
-        { key: 'date', label: '日期' }, { key: 'id', label: '流水 ID' }, { key: 'type', label: '類型' }, { key: 'amount', label: '金額', numeric: true, format: function (value) { return valueOrDash(value, decimal.format); } },
+        { key: 'date', label: '日期' }, { key: 'id', label: '流水 ID' }, { key: 'type', label: '類型' }, { key: 'amount', label: '金額', numeric: true, format: function (value, row) { return currencyText(value, row.currency); } },
         { key: 'currency', label: '幣別' }, { key: 'fxRate', label: '匯率', numeric: true, format: function (value) { return valueOrDash(value, decimal.format); } },
-        { key: 'amountTwd', label: 'TWD 金額', numeric: true, format: moneyText }, { key: 'deletedAt', label: '狀態', format: function (value) { return value ? '已刪除' : '有效'; } }, { key: 'note', label: '備註' }
+        { key: 'amountTwd', label: 'TWD 金額', numeric: true, format: function (value) { return currencyText(value, 'TWD'); } }, { key: 'deletedAt', label: '狀態', format: function (value) { return value ? '已刪除' : '有效'; } }, { key: 'note', label: '備註' }
       ], result.data.items, function (row) {
         if (row.deletedAt) return [actionButton('還原', '', function () { confirmAction('確定還原這筆外部流水？', 'restoreExternalCashFlow', { id: row.id }, loadCashFlows); })];
         return [actionButton('修改', '', function () { openEditor('cashflow', 'update', row); }), actionButton('刪除', 'danger', function () { confirmAction('確定軟刪除這筆外部流水？', 'deleteExternalCashFlow', { id: row.id }, loadCashFlows); })];

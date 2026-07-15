@@ -1,6 +1,6 @@
 # asset-record-web
 
-「資產記錄」v8.3 的繁體中文靜態操作介面。正式發布來源為 `main/docs`，不需要建置工具或 GitHub Actions。
+「資產記錄」v8.3.1 的繁體中文靜態操作介面。正式發布來源為 `main/docs`，不需要建置工具或 GitHub Actions。
 
 正式網站：https://showbao.github.io/asset-record-web/
 
