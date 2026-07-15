@@ -24,7 +24,11 @@
   }
 
   function saveKey(value) {
-    var key = String(value || '').trim();
+    var input = String(value || '').trim();
+    // The Sheet dialog contains the token followed by usage instructions. If
+    // the user copies the whole dialog, keep only the generated 256-bit token.
+    var token = input.match(/arv83_[0-9a-f]{96}/i);
+    var key = token ? token[0] : input;
     if (!key) throw new ApiError('AUTH_REQUIRED', '請輸入 API 金鑰');
     storage().setItem(KEY_NAME, key);
   }
