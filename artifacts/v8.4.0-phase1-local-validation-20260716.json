@@ -1,7 +1,7 @@
 {
   "version": "8.4.0",
   "phase": 1,
-  "generatedAt": "2026-07-16T16:22:26+08:00",
+  "generatedAt": "2026-07-16T16:26:49+08:00",
   "status": "PHASE1_IMPLEMENTED_STAGING_VALIDATED_ACCOUNT_B_PENDING",
   "backup": {
     "sheetCopyId": "1uEuom3n3PXL2mUfylNaLDqH1-6DSLKEBhV70m1rMmMM",
@@ -65,6 +65,7 @@
     "gatewayDeploymentId": "AKfycbx7MMXnTkHyZQwoX2k7BZ7MiG5uSX9UdskuT0EPiBtIVi1m7DkUto8EaixemMpyvOuZ",
     "gatewayBridgeHandshake": "PASS_MESSAGE_PORT_READY_CONFIRMED_IN_DEPLOYED_APPS_SCRIPT",
     "templateGasSync": "PUSHED_12_FILES_TO_BOUND_TEMPLATE_PROJECT",
+    "templateSharing": "OWNER_ONLY_PENDING_ANYONE_WITH_LINK_READER",
     "templatePrepareBlankOutput": {
       "sheetCount": 13,
       "visibleSheets": 5,
@@ -81,6 +82,7 @@
     "githubPagesProductionSwitch": "NOT_STARTED"
   },
   "knownLimits": [
+    "正式空白範本目前只有擁有者權限，尚需在 Google Drive 設為知道連結者可檢視，才能正式對外使用 /copy 連結。",
     "沒有第二個已驗證 Google 帳號與互不共享的測試 Sheet，因此不得宣稱完成正式 A／B 隔離驗收。"
   ]
 }
