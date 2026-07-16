@@ -269,7 +269,7 @@
     ],
     cashflow: [
       { name: 'date', label: '日期', type: 'date', required: true }, { name: 'type', label: '類型', type: 'select', required: true, options: [['入金', '入金'], ['出金', '出金']] },
-      { name: 'amount', label: '金額', type: 'number', required: true }, { name: 'currency', label: '幣別', type: 'select', required: true, options: ['TWD', 'USD', 'JPY'].map(function (value) { return [value, value]; }) },
+      { name: 'amount', label: '金額', type: 'number', required: true }, { name: 'currency', label: '幣別', type: 'select', required: true, options: ['TWD', 'USD', 'JPY', 'EUR', 'GBP', 'CNY', 'HKD'].map(function (value) { return [value, value]; }) },
       { name: 'fxRate', label: '換算匯率', type: 'number', required: true }, { name: 'note', label: '備註', type: 'textarea', full: true }
     ]
   };
@@ -368,7 +368,7 @@
   }
 
   async function queueJob(action, button) {
-    if (!window.confirm('確定將這項維護工作排入每日約 18:30 排程？')) return;
+    if (!window.confirm('確定將這項維護工作排入每日 07:30 排程？')) return;
     setButtonBusy(button, true); clearError();
     try { await api.call(action, { dedupeKey: action }); await loadJobs(); }
     catch (error) { showError(error); }
@@ -385,87 +385,18 @@
     currentLoader()();
   }
 
-  function showOnly(view) {
-    byId('loginView').hidden = view !== 'login';
-    byId('connectionView').hidden = view !== 'connection';
-    byId('appView').hidden = view !== 'app';
-  }
-
-  function showConnection(profile, message) {
-    showOnly('connection');
-    byId('signedInAccount').textContent = profile.name ? profile.name + ' · ' + profile.email : profile.email;
-    byId('connectionError').textContent = message || '';
-  }
-
-  async function openConnection(profile, connection) {
-    api.setConnection(connection);
-    var result = await api.call('verifySpreadsheet', { spreadsheetId: connection.spreadsheetId, dedupeKey: 'verify-connection' });
-    var verified = window.AssetRecordConnection.save(profile.sub, result.data.spreadsheet);
-    api.setConnection(verified);
-    byId('profileName').textContent = profile.name || profile.email;
-    showOnly('app');
-    await loadOverview();
-  }
-
-  async function signedIn(profile) {
-    if (profile && profile.error) { byId('loginError').textContent = errorMessage(profile.error); return; }
-    byId('loginError').textContent = '';
-    var connection = window.AssetRecordConnection.load(profile.sub);
-    if (!connection) { showConnection(profile); return; }
-    try { await openConnection(profile, connection); }
-    catch (error) {
-      api.setConnection(null);
-      window.AssetRecordConnection.clear(profile.sub);
-      showConnection(profile, '原連線已失效：' + errorMessage(error));
-    }
-  }
-
-  async function connectSheet(event) {
-    event.preventDefault();
-    var profile = window.AssetRecordSession.getProfile();
-    var spreadsheetId = window.AssetRecordConnection.extractSpreadsheetId(byId('spreadsheetUrl').value);
-    var button = event.currentTarget.querySelector('button[type=submit]');
-    setButtonBusy(button, true); byId('connectionError').textContent = '';
+  async function login(event) {
+    event.preventDefault(); var button = event.currentTarget.querySelector('button[type=submit]'); setButtonBusy(button, true); byId('loginError').textContent = '';
     try {
-      if (!spreadsheetId) throw new Error('請貼上有效的 Google Sheet 網址');
-      await openConnection(profile, { spreadsheetId: spreadsheetId, spreadsheetName: '資產記錄' });
-      byId('spreadsheetUrl').value = '';
-    } catch (error) { api.setConnection(null); byId('connectionError').textContent = errorMessage(error); }
+      api.saveKey(byId('apiKey').value);
+      await api.call('getJobStatus', { dedupeKey: 'login-check' });
+      byId('apiKey').value = ''; byId('loginView').hidden = true; byId('appView').hidden = false; await loadOverview();
+    } catch (error) { api.clearKey(); byId('loginError').textContent = errorMessage(error); }
     finally { setButtonBusy(button, false); }
   }
+  function logout() { api.clearKey(); byId('appView').hidden = true; byId('loginView').hidden = false; byId('apiKey').focus(); }
 
-  function disconnect() {
-    var profile = window.AssetRecordSession.getProfile();
-    if (profile) window.AssetRecordConnection.clear(profile.sub);
-    api.setConnection(null);
-    if (profile) showConnection(profile);
-  }
-
-  function logout() {
-    api.setConnection(null);
-    window.AssetRecordGoogleAuth.logout();
-    showOnly('login');
-    byId('loginError').textContent = '';
-    window.setTimeout(initializeGoogleLogin, 0);
-  }
-
-  function initializeGoogleLogin() {
-    try { window.AssetRecordGoogleAuth.initialize(); }
-    catch (error) {
-      if (!window.google || !window.google.accounts) window.setTimeout(initializeGoogleLogin, 250);
-      else byId('loginError').textContent = errorMessage(error);
-    }
-  }
-
-  window.AssetRecordGoogleAuth.onSignedIn(signedIn);
-  byId('connectForm').addEventListener('submit', connectSheet);
-  byId('authorizeGatewayButton').addEventListener('click', function () {
-    try { api.authorizeGateway(); byId('connectionError').textContent = ''; }
-    catch (error) { byId('connectionError').textContent = errorMessage(error); }
-  });
-  byId('createSystemButton').addEventListener('click', function () { try { window.AssetRecordTemplateFlow.openTemplateCopy(); } catch (error) { byId('connectionError').textContent = errorMessage(error); } });
-  byId('disconnectButton').addEventListener('click', disconnect);
-  byId('connectionLogoutButton').addEventListener('click', logout);
+  byId('loginForm').addEventListener('submit', login);
   byId('logoutButton').addEventListener('click', logout);
   document.querySelectorAll('.view-tabs button').forEach(function (button) { button.addEventListener('click', function () { switchView(button.dataset.view); }); });
   document.querySelectorAll('.refresh-view').forEach(function (button) { button.addEventListener('click', function () { currentLoader()(); }); });
@@ -481,6 +412,5 @@
   byId('requestRebuild').addEventListener('click', function () { queueJob('requestRebuild', byId('requestRebuild')); });
   byId('requestMarket').addEventListener('click', function () { queueJob('requestMarketRefresh', byId('requestMarket')); });
 
-  showOnly('login');
-  initializeGoogleLogin();
+  if (api.getKey()) { byId('loginView').hidden = true; byId('appView').hidden = false; loadOverview(); }
 })();
