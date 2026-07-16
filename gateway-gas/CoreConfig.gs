@@ -9,6 +9,14 @@ var V840_GATEWAY = Object.freeze({
   LOCK_TIMEOUT_MS: 30000,
   EPSILON: 1e-8,
   GOOGLE_JWKS_URL: 'https://www.googleapis.com/oauth2/v3/certs',
+  ALLOWED_CALLBACK_ORIGINS: Object.freeze([
+    'https://showbao.github.io',
+    'http://localhost:8765'
+  ]),
+  ALLOWED_CALLBACK_URLS: Object.freeze([
+    'https://showbao.github.io/asset-record-web/bridge-relay.html',
+    'http://localhost:8765/bridge-relay.html'
+  ]),
   SHEETS: Object.freeze({
     DASHBOARD: '投資總覽',
     PERFORMANCE: '標的績效',

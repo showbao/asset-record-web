@@ -460,9 +460,8 @@
   window.AssetRecordGoogleAuth.onSignedIn(signedIn);
   byId('connectForm').addEventListener('submit', connectSheet);
   byId('authorizeGatewayButton').addEventListener('click', function () {
-    var url = window.ASSET_RECORD_CONFIG && window.ASSET_RECORD_CONFIG.gatewayUrl;
-    if (!url) { byId('connectionError').textContent = '尚未設定 Gateway URL'; return; }
-    window.open(url, '_blank', 'noopener,noreferrer');
+    try { api.authorizeGateway(); byId('connectionError').textContent = ''; }
+    catch (error) { byId('connectionError').textContent = errorMessage(error); }
   });
   byId('createSystemButton').addEventListener('click', function () { try { window.AssetRecordTemplateFlow.openTemplateCopy(); } catch (error) { byId('connectionError').textContent = errorMessage(error); } });
   byId('disconnectButton').addEventListener('click', disconnect);

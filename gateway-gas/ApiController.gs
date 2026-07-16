@@ -54,7 +54,25 @@ function handleGatewayRequestV840_(request, options) {
   }
 }
 
-function doGet() {
+function gatewayBridgeCallV840(requestJson) {
+  var requestId = '';
+  try {
+    var body = String(requestJson || '');
+    if (Utilities.newBlob(body).getBytes().length > V840_GATEWAY.MAX_PAYLOAD_BYTES) throwGatewayV840_('PAYLOAD_TOO_LARGE', '請求本文超過 100 KB');
+    if (!body) throwGatewayV840_('INVALID_JSON', '請求本文必須是 JSON');
+    var request; try { request = JSON.parse(body); } catch (error) { throwGatewayV840_('INVALID_JSON', 'JSON 格式錯誤'); }
+    requestId = cleanTextV840_(request && request.requestId);
+    return handleGatewayRequestV840_(request, {});
+  } catch (error) {
+    return gatewayResponseV840_(false, error.gatewayCode || 'INTERNAL_ERROR', error.gatewayCode ? error.message : '伺服器處理失敗', error.details || {}, requestId, []);
+  }
+}
+
+function doGet(e) {
+  var parameters = e && e.parameter ? e.parameter : {};
+  if (cleanTextV840_(parameters.mode) === 'bridge') {
+    return bridgeClientOutputV840_(parameters.callbackOrigin, parameters.callbackUrl, parameters.bridgeSessionId);
+  }
   return jsonOutputV840_(gatewayResponseV840_(true, null, '', {
     service: 'asset-record-gateway', version: V840_GATEWAY.VERSION, executeAs: 'USER_ACCESSING', serverTime: new Date().toISOString()
   }, '', []));

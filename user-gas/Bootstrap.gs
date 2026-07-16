@@ -18,13 +18,20 @@ function firstTimeSetup() {
       if (spreadsheet.getName() === V840_TEMPLATE_NAME) throw new Error('正式空白範本本身不可建置；請先建立自己的副本');
 
       var before = getSettingsMapSafeV840_();
-      var alreadyReady = cleanText_(before.SETUP_STATUS) === 'READY';
-      if (!alreadyReady && cleanText_(before.FILE_ROLE || 'TEMPLATE') !== 'TEMPLATE') {
+      var setupStatus = cleanText_(before.SETUP_STATUS);
+      var fileRole = cleanText_(before.FILE_ROLE || 'TEMPLATE');
+      var alreadyReady = setupStatus === 'READY';
+      var recoverableProduction = fileRole === 'PRODUCTION'
+        && !toBoolean_(before.IS_BACKUP, false)
+        && cleanText_(before.SPREADSHEET_ID) === spreadsheet.getId()
+        && (!cleanText_(before.SCRIPT_ID) || cleanText_(before.SCRIPT_ID) === ScriptApp.getScriptId())
+        && ['RUNNING', 'FAILED'].indexOf(setupStatus) >= 0;
+      if (!alreadyReady && fileRole !== 'TEMPLATE' && !recoverableProduction) {
         throw new Error('目前檔案不是正式範本副本，拒絕首次建置');
       }
 
       if (!alreadyReady) {
-        PropertiesService.getScriptProperties().deleteAllProperties();
+        if (fileRole === 'TEMPLATE') PropertiesService.getScriptProperties().deleteAllProperties();
         setSettingValues_({ SETUP_STATUS: 'RUNNING' });
       }
 
@@ -65,8 +72,9 @@ function firstTimeSetup() {
         LAST_VALIDATION_AT: nowSheet_(),
         LAST_VALIDATION_STATUS: 'PASS'
       });
-      onOpen();
-      return apiResult_(true, alreadyReady ? 'ALREADY_READY' : 'OK', alreadyReady ? '首次建置已完成，本次僅執行安全修復' : '首次建置完成', {
+      try { onOpen(); }
+      catch (menuError) { console.warn('首次建置已完成，但目前執行環境無法立即刷新選單：' + menuError.message); }
+      var result = apiResult_(true, alreadyReady ? 'ALREADY_READY' : 'OK', alreadyReady ? '首次建置已完成，本次僅執行安全修復' : '首次建置完成', {
         spreadsheetId: spreadsheet.getId(),
         scriptId: ScriptApp.getScriptId(),
         schema: schema,
@@ -76,8 +84,11 @@ function firstTimeSetup() {
         initialBackup: backup,
         validation: validation
       });
+      console.log(JSON.stringify(result));
+      return result;
     });
   } catch (error) {
+    console.error(error && error.stack ? error.stack : String(error));
     try { setSettingValues_({ SETUP_STATUS: 'FAILED', LAST_VALIDATION_STATUS: 'FAIL' }); } catch (ignore) {}
     return apiResult_(false, 'FIRST_TIME_SETUP_FAILED', error.message, {});
   }
@@ -189,8 +200,11 @@ function validateSystem() {
     var core = typeof validatePhase1Internal_ === 'function' ? validatePhase1Internal_() : { success: true, checkCount: 0, errorCount: 0, warningCount: 0, checks: [] };
     var success = structure.success && core.success;
     setSettingValues_({ LAST_VALIDATION_AT: nowSheet_(), LAST_VALIDATION_STATUS: success ? 'PASS' : 'FAIL' });
-    return apiResult_(success, success ? 'OK' : 'VALIDATION_FAILED', success ? '系統驗證通過' : '系統驗證未通過', { structure: structure, core: core });
+    var result = apiResult_(success, success ? 'OK' : 'VALIDATION_FAILED', success ? '系統驗證通過' : '系統驗證未通過', { structure: structure, core: core });
+    console.log(JSON.stringify(result));
+    return result;
   } catch (error) {
+    console.error(error && error.stack ? error.stack : String(error));
     return apiResult_(false, 'VALIDATION_ERROR', error.message, {});
   }
 }
@@ -219,6 +233,7 @@ function clearRowsBelowV840_(sheetName, firstDataRow) {
 function resetTemplateSettingsV840_() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(V81.SHEETS.SETTINGS);
   if (!sheet) throw new Error('空白範本缺少系統設定分頁');
+  sheet.getRange(1, 1, sheet.getMaxRows(), 3).clearDataValidations();
   sheet.getDataRange().clearContent();
   var rows = [['設定項目', '設定值', '說明']];
   Object.keys(V81.SETTINGS).forEach(function (key) { rows.push([key, V81.SETTINGS[key], V81.SETTING_DESCRIPTIONS[key] || 'V8 系統設定']); });
@@ -232,6 +247,7 @@ function prepareBlankTemplateV840() {
     return withDocumentLock_(function () {
       var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
       if (!spreadsheet || spreadsheet.getName() !== V840_TEMPLATE_NAME) throw new Error('安全防護：此函式只能在「' + V840_TEMPLATE_NAME + '」執行');
+      resetTemplateSettingsV840_();
       ensureV81Schema_();
       clearRowsBelowV840_(V81.SHEETS.ASSETS, 2);
       clearRowsBelowV840_(V81.SHEETS.TRANSACTIONS, 2);
@@ -266,9 +282,12 @@ function prepareBlankTemplateV840() {
       };
       var clean = Object.keys(personalRows).every(function (key) { return personalRows[key] === 0; });
       if (!clean) throw new Error('空白範本仍含個人資料：' + JSON.stringify(personalRows));
-      return apiResult_(true, 'OK', 'v8.4 正式空白範本已清理完成', { name: spreadsheet.getName(), version: V81.VERSION, schemaVersion: V81.SCHEMA_VERSION, personalRows: personalRows, triggerCount: ScriptApp.getProjectTriggers().filter(function (trigger) { return trigger.getHandlerFunction() === 'dailyAssetMaintenance'; }).length });
+      var result = apiResult_(true, 'OK', 'v8.4 正式空白範本已清理完成', { name: spreadsheet.getName(), version: V81.VERSION, schemaVersion: V81.SCHEMA_VERSION, personalRows: personalRows, triggerCount: ScriptApp.getProjectTriggers().filter(function (trigger) { return trigger.getHandlerFunction() === 'dailyAssetMaintenance'; }).length });
+      console.log(JSON.stringify(result));
+      return result;
     });
   } catch (error) {
+    console.error(error && error.stack ? error.stack : String(error));
     return apiResult_(false, 'TEMPLATE_PREPARE_FAILED', error.message, {});
   }
 }

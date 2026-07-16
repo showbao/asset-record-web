@@ -1,8 +1,8 @@
 {
   "version": "8.4.0",
   "phase": 1,
-  "generatedAt": "2026-07-16T12:23:03+08:00",
-  "status": "LOCAL_IMPLEMENTATION_COMPLETE_LIVE_DEPLOYMENT_PENDING",
+  "generatedAt": "2026-07-16T16:22:26+08:00",
+  "status": "PHASE1_IMPLEMENTED_STAGING_VALIDATED_ACCOUNT_B_PENDING",
   "backup": {
     "sheetCopyId": "1uEuom3n3PXL2mUfylNaLDqH1-6DSLKEBhV70m1rMmMM",
     "sheetCopyName": "資產記錄_v8.4.0第一階段前備份_2026-07-16",
@@ -25,12 +25,13 @@
     "blankTemplateBuildCopyId": "1Uo5iePdwlIhelmFLMzLNmUzYaaG8GPpzXg8BPm9EkSg"
   },
   "tests": {
-    "v840NodeTests": { "tests": 10, "passed": 10, "failed": 0 },
+    "v840NodeTests": { "tests": 13, "passed": 13, "failed": 0 },
     "v81CoreAssertions": { "assertions": 30, "passed": true },
     "v82TrendAssertions": { "assertions": 25, "passed": true, "sampleCount": 91 },
     "v83ApiAssertions": { "assertions": 43, "passed": true },
     "v831PerformanceApiAssertions": { "assertions": 45, "passed": true },
     "legacyTotalAssertions": 143,
+    "legacyV831FrontendTest": "SUPERSEDED_BY_V840_GIS_AND_GATEWAY_ARCHITECTURE",
     "unchangedCoreFiles": [
       "10_Core.gs",
       "20_DataService.gs",
@@ -60,16 +61,26 @@
     "xirrVariantsAdded": false
   },
   "liveValidation": {
-    "gatewayDeployment": "PENDING_MANUAL_GOOGLE_AUTHORIZATION",
-    "templateGasSync": "PENDING_MANUAL_GOOGLE_AUTHORIZATION",
-    "templatePrepareBlankOutput": null,
-    "validateSystemOutput": null,
+    "gatewayDeployment": "DEPLOYED_STAGING_VERSION_10",
+    "gatewayDeploymentId": "AKfycbx7MMXnTkHyZQwoX2k7BZ7MiG5uSX9UdskuT0EPiBtIVi1m7DkUto8EaixemMpyvOuZ",
+    "gatewayBridgeHandshake": "PASS_MESSAGE_PORT_READY_CONFIRMED_IN_DEPLOYED_APPS_SCRIPT",
+    "templateGasSync": "PUSHED_12_FILES_TO_BOUND_TEMPLATE_PROJECT",
+    "templatePrepareBlankOutput": {
+      "sheetCount": 13,
+      "visibleSheets": 5,
+      "hiddenSheets": 8,
+      "fileRole": "TEMPLATE",
+      "setupStatus": "NOT_STARTED",
+      "performanceFormats": "PASS",
+      "personalDataEmpty": true
+    },
+    "accountAFirstTimeSetup": "READY_IDEMPOTENT_BACKUP_REUSED_TRIGGER_COUNT_1",
+    "validateSystemOutput": { "checks": 8, "passed": 8, "failed": 0 },
+    "frontendPrivateSheetApi": "PASS_FULL_DUPLEX_SMOKE_EXPECTED_AUTH_INVALID_RESPONSE",
     "accountAAccountBIsolation": "PENDING_TWO_AUTHENTICATED_ACCOUNTS",
     "githubPagesProductionSwitch": "NOT_STARTED"
   },
   "knownLimits": [
-    "Google OAuth／clasp 本機回呼需要管理者在瀏覽器完成一次人工授權。",
-    "正式 Gateway 跨來源 Cookie 與 ContentService redirect 行為必須在 staging 實測後才可發布。",
     "沒有第二個已驗證 Google 帳號與互不共享的測試 Sheet，因此不得宣稱完成正式 A／B 隔離驗收。"
   ]
 }

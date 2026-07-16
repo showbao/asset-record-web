@@ -30,6 +30,12 @@ function gasContext() {
       newBlob(value) { return { getDataAsString() { return Buffer.from(value).toString('utf8'); } }; },
       computeDigest(_algorithm, value) { return Array.from(crypto.createHash('sha256').update(value, 'utf8').digest()); },
       formatDate(date, _zone, format) { return format === 'yyyy-MM-dd' ? date.toISOString().slice(0, 10) : date.toISOString().replace('Z', '+00:00'); }
+    },
+    HtmlService: {
+      XFrameOptionsMode: { ALLOWALL: 'ALLOWALL' },
+      createHtmlOutput(html) {
+        return { html, xFrameOptionsMode: null, setXFrameOptionsMode(mode) { this.xFrameOptionsMode = mode; return this; } };
+      }
     }
   };
   vm.createContext(context);
@@ -76,6 +82,35 @@ test('performance number normalization rejects Date, object, NaN and infinities'
   [new Date(), {}, [], NaN, Infinity, -Infinity, '', null, undefined, '2026-07-16'].forEach((value) => assert.equal(context.numberOrNullV840_(value), null));
   assert.equal(context.numberOrNullV840_(-0.125), -0.125);
   assert.equal(context.numberOrNullV840_('0.0525'), 0.0525);
+});
+
+test('Gateway bridge accepts only allowlisted callback origins, URLs and opaque ids', () => {
+  const context = gasContext();
+  assert.equal(context.isAllowedCallbackOriginV840_('http://localhost:8765'), true);
+  assert.equal(context.isAllowedCallbackOriginV840_('https://attacker.example'), false);
+  assert.equal(context.isAllowedCallbackUrlV840_('http://localhost:8765/bridge-relay.html'), true);
+  assert.equal(context.isAllowedCallbackUrlV840_('http://localhost:8765/other.html'), false);
+  assert.equal(context.isValidBridgeIdV840_('bridge-test-123'), true);
+  assert.equal(context.isValidBridgeIdV840_('bad id with spaces'), false);
+  assert.equal(context.safeJsLiteralV840_('</script>'), '"\\u003c/script>"');
+});
+
+test('Gateway bridge transfers a private MessagePort only to an allowlisted callback origin', () => {
+  const context = gasContext();
+  const output = context.bridgeClientOutputV840_('http://localhost:8765', 'http://localhost:8765/bridge-relay.html', 'session-test-123');
+  assert.equal(output.xFrameOptionsMode, 'ALLOWALL');
+  assert.match(output.html, /gatewayBridgeCallV840/);
+  assert.match(output.html, /new MessageChannel\(\)/);
+  assert.match(output.html, /window\.top\.postMessage/);
+  assert.match(output.html, /type:"gateway-port"/);
+  assert.doesNotMatch(output.html, /assetRecordRelay|BroadcastChannel/);
+  assert.match(output.html, /session-test-123/);
+  const scripts = Array.from(output.html.matchAll(/<script>([\s\S]*?)<\/script>/g), (match) => match[1]);
+  assert.equal(scripts.length, 1);
+  assert.doesNotThrow(() => new Function(scripts[0]));
+  assert.throws(() => context.bridgeClientOutputV840_('https://attacker.example', 'https://attacker.example/bridge-relay.html', 'session-test-123'), /不允許/);
+  assert.throws(() => context.bridgeClientOutputV840_('http://localhost:8765', 'http://localhost:8765/bridge-relay.html', 'bad id'), /bridgeSessionId/);
+  assert.throws(() => context.bridgeClientOutputV840_('http://localhost:8765', 'http://localhost:8765/other.html', 'session-test-123'), /relay/);
 });
 
 test('spreadsheet guard requires editable Google Sheet and production asset-record markers', () => {

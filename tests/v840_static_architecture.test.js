@@ -28,8 +28,40 @@ test('frontend loads GIS and stores connection under Google sub', () => {
   assert.match(read('docs/index.html'), /accounts\.google\.com\/gsi\/client/);
   assert.match(read('docs/src/connection/sheet-connection.js'), /asset-record\.connection\.' \+ sub/);
   assert.match(read('docs/src/auth/google-auth.js'), /disableAutoSelect\(\)/);
-  assert.match(read('docs/src/api/gateway-client.js'), /credentials:\s*'include'/);
+  assert.match(read('docs/src/api/gateway-client.js'), /postThroughBridge/);
+  assert.match(read('docs/src/api/gateway-client.js'), /bridge-relay\.html/);
+  assert.match(read('docs/src/api/gateway-client.js'), /addEventListener\('message'/);
+  assert.doesNotMatch(read('docs/src/api/gateway-client.js'), /fetch\(gatewayUrl\(\)/);
   assert.doesNotMatch(read('docs/src/auth/session-store.js'), /setItem\([^\n]*credential|setItem\([^\n]*idToken/i);
+});
+
+test('Gateway popup bridge validates callback origin and keeps credentials out of URLs and storage', () => {
+  const response = read('gateway-gas/ResponseService.gs');
+  const controller = read('gateway-gas/ApiController.gs');
+  const client = read('docs/src/api/gateway-client.js');
+  const relay = read('docs/bridge-relay.html');
+  assert.match(response, /isAllowedCallbackOriginV840_/);
+  assert.match(response, /postMessage/);
+  assert.match(response, /XFrameOptionsMode\.ALLOWALL/);
+  assert.match(controller, /gatewayBridgeCallV840/);
+  assert.doesNotMatch(controller, /parameters\.request/);
+  assert.match(response, /new MessageChannel\(\)/);
+  assert.match(response, /window\.top\.postMessage/);
+  assert.match(client, /bridgeWindow\.postMessage/);
+  assert.match(client, /event\.source !== bridgeWindow/);
+  assert.match(client, /bridgeSessionId/);
+  assert.match(client, /authorizeGateway/);
+  assert.doesNotMatch(client, /BroadcastChannel/);
+  assert.doesNotMatch(client, /[?&](?:idToken|request)=/);
+  assert.match(relay, /event\.ports\[0\]/);
+  assert.match(relay, /window\.opener\.postMessage/);
+  assert.match(relay, /event\.source === window\.opener/);
+  assert.match(relay, /authorizeLink/);
+  assert.match(relay, /retryButton/);
+  assert.doesNotMatch(relay, /BroadcastChannel/);
+  const relayScripts = Array.from(relay.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g), (match) => match[1]).filter(Boolean);
+  assert.equal(relayScripts.length, 1);
+  assert.doesNotThrow(() => new Function(relayScripts[0]));
 });
 
 test('User GAS exposes stable handlers, idempotent setup, template guard and one daily handler', () => {
@@ -38,6 +70,11 @@ test('User GAS exposes stable handlers, idempotent setup, template guard and one
   for (const name of ['getSystemVersion', 'firstTimeSetup', 'createManualBackup', 'validateSystem', 'getSystemHealth']) assert.match(bootstrap, new RegExp('function ' + name + '\\s*\\('));
   for (const name of ['dailyAssetMaintenance', 'installOrRepairDailyTrigger', 'removeDailyTrigger']) assert.match(trigger, new RegExp('function ' + name + '\\s*\\('));
   assert.match(bootstrap, /spreadsheet\.getName\(\) !== V840_TEMPLATE_NAME/);
+  assert.match(bootstrap, /getRange\(1, 1, sheet\.getMaxRows\(\), 3\)\.clearDataValidations\(\)/);
+  assert.match(bootstrap, /resetTemplateSettingsV840_\(\);\s*ensureV81Schema_\(\)/);
+  assert.match(bootstrap, /recoverableProduction/);
+  assert.match(bootstrap, /\['RUNNING', 'FAILED'\]\.indexOf\(setupStatus\)/);
+  assert.match(bootstrap, /目前執行環境無法立即刷新選單/);
   assert.match(bootstrap, /INITIAL_BACKUP_ID/);
   assert.match(trigger, /getHandlerFunction\(\) === 'dailyAssetMaintenance'/);
   assert.doesNotMatch(read('user-gas/appsscript.json'), /"webapp"/);
