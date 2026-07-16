@@ -29,9 +29,14 @@ button:disabled { opacity: .5; cursor: wait; }
 .form-error, .global-error { color: var(--danger); min-height: 1.25rem; }
 
 .login-shell { min-height: 100vh; display: grid; place-items: center; padding: 1.25rem; }
-.login-card { width: min(38rem, 100%); padding: clamp(2rem, 7vw, 4.5rem); border: 1px solid rgba(23, 95, 70, .18); border-radius: 2rem; background: rgba(255, 253, 248, .94); box-shadow: var(--shadow); }
+.login-card { width: min(38rem, calc(100vw - 2.5rem)); max-width: 100%; min-width: 0; padding: clamp(2rem, 7vw, 4.5rem); border: 1px solid rgba(23, 95, 70, .18); border-radius: 2rem; background: rgba(255, 253, 248, .94); box-shadow: var(--shadow); }
 .login-card h1 { margin: .8rem 0 1rem; font-family: Georgia, "Noto Serif TC", serif; font-size: clamp(2.4rem, 8vw, 4.5rem); line-height: 1.02; letter-spacing: -.04em; }
 .login-card p { color: var(--muted); line-height: 1.7; }
+.google-sign-in { min-height: 44px; display: flex; justify-content: center; margin-top: 1.5rem; }
+.connection-card { display: grid; gap: 1rem; }
+.connection-card .stack { padding-top: 1rem; border-top: 1px solid var(--line); }
+.privacy-note { color: var(--muted); font-size: .92rem; }
+.privacy-note summary { cursor: pointer; color: var(--green); font-weight: 700; }
 .stack { display: grid; gap: 1rem; margin-top: 2rem; }
 label { display: grid; gap: .4rem; color: var(--muted); font-size: .85rem; font-weight: 650; }
 input, select, textarea { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: .75rem; padding: .72rem .8rem; color: var(--ink); background: #fff; }
@@ -41,6 +46,7 @@ input:focus, select:focus, textarea:focus { outline: 3px solid rgba(45, 128, 98,
 .topbar { position: sticky; top: 0; z-index: 10; min-height: 4.75rem; display: flex; justify-content: space-between; align-items: center; padding: .8rem clamp(1rem, 4vw, 3rem); border-bottom: 1px solid rgba(217, 222, 216, .9); backdrop-filter: blur(14px); background: rgba(245, 243, 236, .88); }
 .topbar strong { font-family: Georgia, "Noto Serif TC", serif; font-size: 1.35rem; }
 .top-actions { display: flex; align-items: center; gap: .75rem; }
+.profile-name { color: var(--muted); font-size: .9rem; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .status-pill { padding: .35rem .65rem; border-radius: 999px; color: var(--green); background: var(--mint); font-size: .78rem; }
 .warning, .global-error { margin: 1rem clamp(1rem, 4vw, 3rem) 0; padding: .85rem 1rem; border-radius: .8rem; }
 .warning { border: 1px solid #dec28d; background: #fff4d9; color: #6a4a14; }

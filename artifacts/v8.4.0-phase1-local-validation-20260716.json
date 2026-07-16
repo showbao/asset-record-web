@@ -1,0 +1,75 @@
+{
+  "version": "8.4.0",
+  "phase": 1,
+  "generatedAt": "2026-07-16T12:23:03+08:00",
+  "status": "LOCAL_IMPLEMENTATION_COMPLETE_LIVE_DEPLOYMENT_PENDING",
+  "backup": {
+    "sheetCopyId": "1uEuom3n3PXL2mUfylNaLDqH1-6DSLKEBhV70m1rMmMM",
+    "sheetCopyName": "資產記錄_v8.4.0第一階段前備份_2026-07-16",
+    "localZip": "backups/asset-record-v8.3.1-pre-v8.4.0-phase1-20260716.zip",
+    "localZipSha256": "853210759F82E74D5977182DFEAF73D5EBA8BD56B18C6DBF7A5D11590A2FD7DF",
+    "baselineCommit": "5fa7037a99e0bbbd296ab7338df410ec709d47f4",
+    "baselineTag": "v8.3.1-pre-v8.4.0-20260716"
+  },
+  "implementation": {
+    "branch": "agent/v8.4.0-private-sheets",
+    "apiKeyAndMemberLoginRemoved": true,
+    "googleIdentityServicesAdded": true,
+    "idTokenMemoryOnly": true,
+    "connectionStorageKeyedByGoogleSub": true,
+    "gatewayExecuteAs": "USER_ACCESSING",
+    "centralUserDatabase": false,
+    "futureImportsImplemented": false,
+    "futureBackupCenterImplemented": false,
+    "futureUpgradeCenterImplemented": false,
+    "blankTemplateBuildCopyId": "1Uo5iePdwlIhelmFLMzLNmUzYaaG8GPpzXg8BPm9EkSg"
+  },
+  "tests": {
+    "v840NodeTests": { "tests": 10, "passed": 10, "failed": 0 },
+    "v81CoreAssertions": { "assertions": 30, "passed": true },
+    "v82TrendAssertions": { "assertions": 25, "passed": true, "sampleCount": 91 },
+    "v83ApiAssertions": { "assertions": 43, "passed": true },
+    "v831PerformanceApiAssertions": { "assertions": 45, "passed": true },
+    "legacyTotalAssertions": 143,
+    "unchangedCoreFiles": [
+      "10_Core.gs",
+      "20_DataService.gs",
+      "30_TransactionService.gs",
+      "40_MarketDataService.gs",
+      "50_PortfolioEngine.gs"
+    ],
+    "googleTokenCases": [
+      "valid RS256 signature",
+      "wrong audience rejected",
+      "expired token rejected",
+      "active account mismatch rejected",
+      "invalid signature rejected"
+    ],
+    "privacySimulation": {
+      "accountAConnectionKey": "asset-record.connection.sub-A",
+      "accountBConnectionKey": "asset-record.connection.sub-B",
+      "uneditableForeignSheetRejected": true,
+      "liveTwoAccountTest": "PENDING"
+    }
+  },
+  "scopeGuards": {
+    "portfolioEngineRewritten": false,
+    "transactionCostLogicChanged": false,
+    "externalCashflowDefinitionChanged": false,
+    "trendSnapshotLogicChanged": false,
+    "xirrVariantsAdded": false
+  },
+  "liveValidation": {
+    "gatewayDeployment": "PENDING_MANUAL_GOOGLE_AUTHORIZATION",
+    "templateGasSync": "PENDING_MANUAL_GOOGLE_AUTHORIZATION",
+    "templatePrepareBlankOutput": null,
+    "validateSystemOutput": null,
+    "accountAAccountBIsolation": "PENDING_TWO_AUTHENTICATED_ACCOUNTS",
+    "githubPagesProductionSwitch": "NOT_STARTED"
+  },
+  "knownLimits": [
+    "Google OAuth／clasp 本機回呼需要管理者在瀏覽器完成一次人工授權。",
+    "正式 Gateway 跨來源 Cookie 與 ContentService redirect 行為必須在 staging 實測後才可發布。",
+    "沒有第二個已驗證 Google 帳號與互不共享的測試 Sheet，因此不得宣稱完成正式 A／B 隔離驗收。"
+  ]
+}

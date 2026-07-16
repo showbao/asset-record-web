@@ -12,16 +12,31 @@
 
   <main id="loginView" class="login-shell">
     <section class="login-card" aria-labelledby="loginTitle">
-      <div class="eyebrow">ASSET RECORD · V8.3.1</div>
+      <div class="eyebrow">ASSET RECORD · V8.4.0</div>
       <h1 id="loginTitle">把投資全貌，留在自己手上。</h1>
-      <p>金鑰只保存在這個分頁的 sessionStorage，關閉分頁或登出後即清除。</p>
-      <form id="loginForm" class="stack">
-        <label>API 金鑰
-          <input id="apiKey" name="apiKey" type="password" autocomplete="off" required placeholder="arv83_…">
+      <p>使用 Google 帳號登入；投資資料只存放在你自己的私人 Google Sheet，管理者不會取得檔案權限。</p>
+      <div id="googleSignInButton" class="google-sign-in" aria-label="使用 Google 帳號登入"></div>
+      <p id="loginError" class="form-error" role="alert"></p>
+    </section>
+  </main>
+
+  <main id="connectionView" class="login-shell" hidden>
+    <section class="login-card connection-card" aria-labelledby="connectionTitle">
+      <div class="eyebrow">PRIVATE GOOGLE SHEET</div>
+      <h1 id="connectionTitle">尚未連結資產記錄</h1>
+      <p id="signedInAccount" class="muted"></p>
+      <button id="authorizeGatewayButton" type="button">啟用私人 Sheet 存取</button>
+      <p class="muted">第一次使用時，Google 會要求你授權 Gateway 讀寫你指定的試算表。請在新分頁完成後回到這裡。</p>
+      <button id="createSystemButton" class="primary" type="button">建立新的資產記錄</button>
+      <details class="privacy-note"><summary>建立前請先閱讀</summary><p>範本副本會建立在你自己的 Google Drive。建立後請在 Sheet 的「資產記錄」選單執行一次「首次建置」，再回來連結。</p></details>
+      <form id="connectForm" class="stack">
+        <label>連結既有資產記錄
+          <input id="spreadsheetUrl" type="url" inputmode="url" autocomplete="off" required placeholder="貼上 Google Sheet 網址">
         </label>
-        <button class="primary" type="submit">開啟資產記錄</button>
-        <p id="loginError" class="form-error" role="alert"></p>
+        <button type="submit">驗證並連結</button>
+        <p id="connectionError" class="form-error" role="alert"></p>
       </form>
+      <button id="connectionLogoutButton" class="ghost" type="button">改用其他 Google 帳號</button>
     </section>
   </main>
 
@@ -32,12 +47,14 @@
         <strong>資產記錄</strong>
       </div>
       <div class="top-actions">
+        <span id="profileName" class="profile-name"></span>
         <span id="syncState" class="status-pill">準備就緒</span>
+        <button id="disconnectButton" class="ghost" type="button">切換 Sheet</button>
         <button id="logoutButton" class="ghost" type="button">登出</button>
       </div>
     </header>
 
-    <div id="recalcWarning" class="warning" role="status" hidden>資料已變更，等待每日 07:30 排程重算。現在仍可查閱既有資料。</div>
+    <div id="recalcWarning" class="warning" role="status" hidden>資料已變更，等待每日約 18:30 排程重算。現在仍可查閱既有資料。</div>
     <div id="globalError" class="global-error" role="alert" hidden></div>
 
     <nav class="view-tabs" aria-label="主要功能">
@@ -109,7 +126,7 @@
         <form id="cashFlowFilters" class="filters wide">
           <input name="query" type="search" placeholder="搜尋 ID 或備註">
           <select name="type"><option value="">全部類型</option><option value="入金">入金</option><option value="出金">出金</option></select>
-          <select name="currency"><option value="">全部幣別</option><option>TWD</option><option>USD</option><option>JPY</option><option>EUR</option><option>GBP</option><option>CNY</option><option>HKD</option></select>
+          <select name="currency"><option value="">全部幣別</option><option>TWD</option><option>USD</option><option>JPY</option></select>
           <input name="dateFrom" type="date" aria-label="起始日期"><input name="dateTo" type="date" aria-label="結束日期">
           <select name="deleted"><option value="active">有效資料</option><option value="deleted">已刪除</option><option value="all">全部</option></select>
           <button type="submit">套用</button>
@@ -124,7 +141,7 @@
           <button id="requestRebuild" class="primary" type="button">排入持倉重算</button>
           <button id="requestMarket" type="button">排入市場更新</button>
         </div>
-        <p class="muted">維護要求只會排隊，統一由每日約 07:30 的唯一排程處理。</p>
+        <p class="muted">維護要求只會排隊，統一由每日約 18:30 的唯一排程處理。</p>
       </section>
     </main>
   </div>
@@ -138,8 +155,14 @@
     </form>
   </dialog>
 
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="config.js"></script>
-  <script src="api-client.js"></script>
+  <script src="src/auth/session-store.js"></script>
+  <script src="src/auth/google-auth.js"></script>
+  <script src="src/connection/sheet-connection.js"></script>
+  <script src="src/connection/template-flow.js"></script>
+  <script src="src/api/api-types.js"></script>
+  <script src="src/api/gateway-client.js"></script>
   <script src="ui-format.js"></script>
   <script src="app.js"></script>
 </body>

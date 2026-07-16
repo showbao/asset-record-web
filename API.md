@@ -1,4 +1,4 @@
-# 資產記錄 Web API v8.3.1
+# 資產記錄 Gateway API v8.4.0
 
 ## 傳輸格式
 
@@ -7,14 +7,18 @@
 ```json
 {
   "action": "listTransactions",
-  "apiKey": "由 Sheet 選單一次性取得",
+  "idToken": "Google Identity Services ID Token（僅在記憶體）",
+  "spreadsheetId": "目前使用者自己的正式 Sheet ID",
+  "clientVersion": "8.4.0",
   "requestId": "瀏覽器 UUID",
   "params": {},
   "payload": {}
 }
 ```
 
-回應固定包含 `success`、`code`、`message`、`data`、`version`、`timestamp`、`requestId`。業務成功或失敗依 `success` 與 `code` 判斷，不依 HTTP 狀態碼判斷。日期為 `YYYY-MM-DD`，時間包含 `+08:00`。
+回應固定包含 `success`、`version`、`requestId`、`data`、`warnings`、`error`。錯誤碼與訊息位於 `error.code`、`error.message`。日期為 `YYYY-MM-DD`，時間包含時區。
+
+Gateway 驗證 ID Token 的 RSA-SHA256 簽章、`aud`、`iss`、`exp`、`iat`、`sub`、Email 驗證狀態，並要求 Token Email 與 Web App 的 active user 相同。Token 不被持久保存。
 
 績效 API 的數值欄位只回傳有限 `number` 或 `null`，日期欄位只回傳 ISO 字串或 `null`。`Date` 不得轉為時間戳記型績效數值；標的績效僅保留單一 `xirr`，對應 Sheet 的「XIRR（年化）」欄。
 
@@ -24,6 +28,7 @@
 
 | 類別 | Actions |
 | --- | --- |
+| 連線／建置 | `verifySpreadsheet`, `getSystemStatus`, `initializeNewSystem`, `validateSetup` |
 | 標的 | `listAssets`, `getAsset`, `createAsset`, `updateAsset`, `disableAsset` |
 | 交易 | `listTransactions`, `getTransaction`, `createTransaction`, `updateTransaction`, `deleteTransaction`, `restoreTransaction` |
 | 外部流水 | `listExternalCashFlows`, `getExternalCashFlow`, `createExternalCashFlow`, `updateExternalCashFlow`, `deleteExternalCashFlow`, `restoreExternalCashFlow` |
@@ -42,6 +47,6 @@
 
 ## 穩定錯誤碼
 
-`AUTH_REQUIRED`, `AUTH_INVALID`, `INVALID_JSON`, `INVALID_REQUEST`, `ACTION_NOT_FOUND`, `VALIDATION_ERROR`, `NOT_FOUND`, `CONFLICT`, `OVERSELL`, `LOCK_TIMEOUT`, `PAYLOAD_TOO_LARGE`, `INTERNAL_ERROR`。
+`AUTH_REQUIRED`, `AUTH_INVALID`, `AUTH_EXPIRED`, `AUTH_ACCOUNT_MISMATCH`, `ACTIVE_USER_UNAVAILABLE`, `SPREADSHEET_REQUIRED`, `SPREADSHEET_ACCESS_DENIED`, `SPREADSHEET_READ_ONLY`, `NOT_GOOGLE_SHEET`, `NOT_ASSET_RECORD`, `NOT_PRODUCTION_FILE`, `BACKUP_NOT_ALLOWED`, `INVALID_JSON`, `INVALID_REQUEST`, `ACTION_NOT_FOUND`, `VALIDATION_ERROR`, `NOT_FOUND`, `CONFLICT`, `OVERSELL`, `LOCK_TIMEOUT`, `PAYLOAD_TOO_LARGE`, `INTERNAL_ERROR`。
 
-重複排隊回傳成功碼 `ALREADY_PENDING`；重複停用、刪除或還原回傳冪等成功碼，不改寫時間。
+匯入、備份中心與版本升級 Actions 在 v8.4.0 明確回傳 `FEATURE_NOT_AVAILABLE`，依序於 v8.4.1、v8.4.2、v8.5.0 開放。
