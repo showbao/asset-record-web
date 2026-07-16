@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Asset Record secure relay</title>
+  <style>
+    html,body{height:100%;margin:0;background:#f6f1e7;color:#123c2c;font-family:system-ui,sans-serif}
+    body{display:grid;grid-template-rows:auto auto 1fr}
+    p{margin:0;padding:.75rem 1rem;text-align:center}
+    .actions{display:flex;justify-content:center;gap:.75rem;align-items:center;padding:0 1rem .75rem}
+    a,button{font:inherit;color:#123c2c}button{border:1px solid #789183;border-radius:999px;background:#fffdf8;padding:.4rem .8rem;cursor:pointer}
+    iframe{width:100%;height:100%;border:0;background:#f6f1e7}
+  </style>
+</head>
+<body>
+  <p id="status">正在連接你的私人 Sheet…</p>
+  <div class="actions">
+    <a id="authorizeLink" href="#" target="_blank" rel="noopener">首次使用：完成 Google 授權</a>
+    <button id="retryButton" type="button">重新連線</button>
+  </div>
+  <iframe id="gatewayFrame" title="Asset Record Gateway"></iframe>
+  <script src="config.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      window.addEventListener('hashchange', function () {
+        window.location.reload();
+      });
+      var channelName = 'asset-record-gateway-v840';
+      var hashParams = new URLSearchParams(String(window.location.hash || '').slice(1));
+      var sessionId = String(hashParams.get('session') || '');
+      var accountEmail = String(hashParams.get('account') || '').trim().toLowerCase();
+      var callbackOrigin = window.location.origin;
+      var callbackUrl = window.location.origin + window.location.pathname;
+      var gatewayPort = null;
+      var gatewaySrc = '';
+      var readinessTimer = null;
+      var status = document.getElementById('status');
+      var authorizeLink = document.getElementById('authorizeLink');
+      var retryButton = document.getElementById('retryButton');
+      var gatewayFrame = document.getElementById('gatewayFrame');
+      if (!/^[A-Za-z0-9._:-]{1,128}$/.test(sessionId)) {
+        status.textContent = '安全通道識別碼無效';
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountEmail) || accountEmail.length > 254) {
+        status.textContent = 'Google 帳號資訊無效，請回到主頁重新登入';
+        return;
+      }
+      function isGoogleScriptOrigin(origin) {
+        try {
+          var host = new URL(origin).hostname;
+          return host === 'script.google.com' || host === 'script.googleusercontent.com' || /[.-]script\.googleusercontent\.com$/.test(host);
+        } catch (_error) { return false; }
+      }
+      function postToFrontend(value) {
+        if (window.opener && !window.opener.closed) window.opener.postMessage(value, callbackOrigin);
+      }
+      function connectGateway() {
+        if (!gatewaySrc) return;
+        if (readinessTimer !== null) window.clearTimeout(readinessTimer);
+        status.textContent = '正在連接你的私人 Sheet…';
+        gatewayFrame.src = gatewaySrc;
+        readinessTimer = window.setTimeout(function () {
+          if (!gatewayPort) status.textContent = '若尚未授權，請先完成 Google 授權，再按重新連線';
+        }, 8000);
+      }
+      window.addEventListener('message', function (event) {
+        var data = event.data;
+        if (event.source === window.opener) {
+          if (event.origin !== callbackOrigin || !gatewayPort) return;
+          if (!data || data.channel !== channelName || data.sessionId !== sessionId || data.type !== 'request') return;
+          gatewayPort.postMessage(data);
+          return;
+        }
+        if (!isGoogleScriptOrigin(event.origin)) return;
+        if (!data || data.channel !== channelName || data.sessionId !== sessionId || data.type !== 'gateway-port') return;
+        if (!event.ports || !event.ports[0]) return;
+        if (gatewayPort) gatewayPort.close();
+        gatewayPort = event.ports[0];
+        gatewayPort.addEventListener('message', function (portEvent) {
+          var response = portEvent.data;
+          if (!response || response.channel !== channelName || response.sessionId !== sessionId || response.type !== 'response') return;
+          postToFrontend(response);
+        });
+        gatewayPort.start();
+        if (readinessTimer !== null) window.clearTimeout(readinessTimer);
+        readinessTimer = null;
+        status.textContent = '私人 Sheet 安全通道已就緒';
+        postToFrontend({ channel: channelName, type: 'ready', sessionId: sessionId });
+      });
+      retryButton.addEventListener('click', connectGateway);
+      var configuredUrl = window.ASSET_RECORD_CONFIG && window.ASSET_RECORD_CONFIG.gatewayUrl;
+      try {
+        var parsedGatewayUrl = new URL(String(configuredUrl || ''));
+        if (parsedGatewayUrl.protocol !== 'https:' || parsedGatewayUrl.hostname !== 'script.google.com') throw new Error('invalid Gateway URL');
+        parsedGatewayUrl.searchParams.set('authuser', accountEmail);
+        authorizeLink.href = parsedGatewayUrl.href;
+        parsedGatewayUrl.searchParams.set('mode', 'bridge');
+        parsedGatewayUrl.searchParams.set('callbackOrigin', callbackOrigin);
+        parsedGatewayUrl.searchParams.set('callbackUrl', callbackUrl);
+        parsedGatewayUrl.searchParams.set('bridgeSessionId', sessionId);
+        gatewaySrc = parsedGatewayUrl.href;
+        connectGateway();
+      } catch (_error) {
+        status.textContent = 'Gateway 設定無效';
+      }
+      window.addEventListener('pagehide', function () {
+        if (readinessTimer !== null) window.clearTimeout(readinessTimer);
+        if (gatewayPort) gatewayPort.close();
+      });
+    })();
+  </script>
+</body>
+</html>
