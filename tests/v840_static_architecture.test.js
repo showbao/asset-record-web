@@ -51,6 +51,9 @@ test('Gateway popup bridge validates callback origin and keeps credentials out o
   assert.match(client, /event\.source !== bridgeWindow/);
   assert.match(client, /bridgeSessionId/);
   assert.match(client, /authorizeGateway/);
+  assert.match(client, /AssetRecordSession\.getProfile\(\)/);
+  assert.match(client, /account=' \+ encodeURIComponent/);
+  assert.match(client, /searchParams\.set\('v', BRIDGE_BUILD\)/);
   assert.doesNotMatch(client, /BroadcastChannel/);
   assert.doesNotMatch(client, /[?&](?:idToken|request)=/);
   assert.match(relay, /event\.ports\[0\]/);
@@ -58,6 +61,9 @@ test('Gateway popup bridge validates callback origin and keeps credentials out o
   assert.match(relay, /event\.source === window\.opener/);
   assert.match(relay, /authorizeLink/);
   assert.match(relay, /retryButton/);
+  assert.match(relay, /hashParams\.get\('account'\)/);
+  assert.match(relay, /searchParams\.set\('authuser', accountEmail\)/);
+  assert.match(relay, /addEventListener\('hashchange'[\s\S]*window\.location\.reload\(\)/);
   assert.doesNotMatch(relay, /BroadcastChannel/);
   const relayScripts = Array.from(relay.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g), (match) => match[1]).filter(Boolean);
   assert.equal(relayScripts.length, 1);

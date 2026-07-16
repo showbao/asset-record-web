@@ -125,6 +125,29 @@ test('spreadsheet guard requires editable Google Sheet and production asset-reco
   assert.throws(() => context.guardSpreadsheetV840_('12345678901234567890', {}, Object.assign({}, base, { settings: Object.assign({}, base.settings, { FILE_ROLE: 'BACKUP', IS_BACKUP: 'TRUE' }) })), /備份檔/);
 });
 
+test('Drive metadata guard uses DriveApp readonly access and recognizes owner editability', () => {
+  const context = gasContext();
+  const permissions = { OWNER: 'OWNER', EDIT: 'EDIT', ORGANIZER: 'ORGANIZER', FILE_ORGANIZER: 'FILE_ORGANIZER', VIEW: 'VIEW' };
+  context.Session = { getActiveUser: () => ({ getEmail: () => 'owner@example.com' }) };
+  context.DriveApp = {
+    Permission: permissions,
+    getFileById(id) {
+      assert.equal(id, '12345678901234567890');
+      return {
+        getId: () => id,
+        getName: () => 'Private portfolio',
+        getMimeType: () => 'application/vnd.google-apps.spreadsheet',
+        isTrashed: () => false,
+        getAccess(email) { assert.equal(email, 'owner@example.com'); return permissions.OWNER; }
+      };
+    }
+  };
+  const metadata = context.driveFileMetadataV840_('12345678901234567890');
+  assert.equal(metadata.capabilities.canEdit, true);
+  assert.equal(metadata.name, 'Private portfolio');
+  assert.equal(metadata.mimeType, 'application/vnd.google-apps.spreadsheet');
+});
+
 test('browser session keeps ID token only in memory and isolates connections by Google sub', () => {
   const writes = new Map();
   const localStorage = { setItem: (key, value) => writes.set(key, value), getItem: (key) => writes.get(key) || null, removeItem: (key) => writes.delete(key) };

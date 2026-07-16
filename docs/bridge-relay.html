@@ -24,8 +24,13 @@
   <script>
     (function () {
       'use strict';
+      window.addEventListener('hashchange', function () {
+        window.location.reload();
+      });
       var channelName = 'asset-record-gateway-v840';
-      var sessionId = decodeURIComponent(String(window.location.hash || '').slice(1));
+      var hashParams = new URLSearchParams(String(window.location.hash || '').slice(1));
+      var sessionId = String(hashParams.get('session') || '');
+      var accountEmail = String(hashParams.get('account') || '').trim().toLowerCase();
       var callbackOrigin = window.location.origin;
       var callbackUrl = window.location.origin + window.location.pathname;
       var gatewayPort = null;
@@ -37,6 +42,10 @@
       var gatewayFrame = document.getElementById('gatewayFrame');
       if (!/^[A-Za-z0-9._:-]{1,128}$/.test(sessionId)) {
         status.textContent = '安全通道識別碼無效';
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountEmail) || accountEmail.length > 254) {
+        status.textContent = 'Google 帳號資訊無效，請回到主頁重新登入';
         return;
       }
       function isGoogleScriptOrigin(origin) {
@@ -86,9 +95,13 @@
       try {
         var parsedGatewayUrl = new URL(String(configuredUrl || ''));
         if (parsedGatewayUrl.protocol !== 'https:' || parsedGatewayUrl.hostname !== 'script.google.com') throw new Error('invalid Gateway URL');
-        var separator = parsedGatewayUrl.href.indexOf('?') >= 0 ? '&' : '?';
+        parsedGatewayUrl.searchParams.set('authuser', accountEmail);
         authorizeLink.href = parsedGatewayUrl.href;
-        gatewaySrc = parsedGatewayUrl.href + separator + 'mode=bridge&callbackOrigin=' + encodeURIComponent(callbackOrigin) + '&callbackUrl=' + encodeURIComponent(callbackUrl) + '&bridgeSessionId=' + encodeURIComponent(sessionId);
+        parsedGatewayUrl.searchParams.set('mode', 'bridge');
+        parsedGatewayUrl.searchParams.set('callbackOrigin', callbackOrigin);
+        parsedGatewayUrl.searchParams.set('callbackUrl', callbackUrl);
+        parsedGatewayUrl.searchParams.set('bridgeSessionId', sessionId);
+        gatewaySrc = parsedGatewayUrl.href;
         connectGateway();
       } catch (_error) {
         status.textContent = 'Gateway 設定無效';

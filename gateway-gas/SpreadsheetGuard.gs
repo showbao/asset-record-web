@@ -1,18 +1,21 @@
 function driveFileMetadataV840_(spreadsheetId) {
-  var url = 'https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(spreadsheetId) +
-    '?fields=id,name,mimeType,trashed,capabilities(canEdit)&supportsAllDrives=true';
-  var response = UrlFetchApp.fetch(url, {
-    method: 'get',
-    muteHttpExceptions: true,
-    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }
-  });
-  var status = response.getResponseCode();
-  if (status === 401 || status === 403 || status === 404) {
+  try {
+    var file = DriveApp.getFileById(spreadsheetId);
+    var activeEmail = cleanTextV840_(Session.getActiveUser().getEmail()).toLowerCase();
+    if (!activeEmail) throwGatewayV840_('ACTIVE_USER_UNAVAILABLE', '無法確認目前 Gateway 的 Google 帳號');
+    var permission = file.getAccess(activeEmail);
+    var editablePermissions = [DriveApp.Permission.OWNER, DriveApp.Permission.EDIT, DriveApp.Permission.ORGANIZER, DriveApp.Permission.FILE_ORGANIZER];
+    return {
+      id: file.getId(),
+      name: file.getName(),
+      mimeType: file.getMimeType(),
+      trashed: file.isTrashed(),
+      capabilities: { canEdit: editablePermissions.indexOf(permission) >= 0 }
+    };
+  } catch (error) {
+    if (error && error.gatewayCode) throw error;
     throwGatewayV840_('SPREADSHEET_ACCESS_DENIED', '目前 Google 帳號無法存取這份試算表');
   }
-  if (status !== 200) throwGatewayV840_('DRIVE_CHECK_FAILED', '無法確認試算表權限', { status: status });
-  try { return JSON.parse(response.getContentText()); }
-  catch (error) { throwGatewayV840_('DRIVE_CHECK_FAILED', 'Drive 權限回應格式錯誤'); }
 }
 
 function readSettingsV840_(spreadsheet) {

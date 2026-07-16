@@ -1,13 +1,19 @@
 {
   "version": "8.4.0",
   "phase": 1,
-  "generatedAt": "2026-07-16T16:59:06+08:00",
-  "status": "PHASE1_IMPLEMENTED_STAGING_VALIDATED_ACCOUNT_B_PENDING",
+  "generatedAt": "2026-07-16T19:05:18+08:00",
+  "status": "PHASE1_IMPLEMENTED_STAGING_VALIDATED",
   "backup": {
     "sheetCopyId": "1uEuom3n3PXL2mUfylNaLDqH1-6DSLKEBhV70m1rMmMM",
     "sheetCopyName": "資產記錄_v8.4.0第一階段前備份_2026-07-16",
     "localZip": "backups/asset-record-v8.3.1-pre-v8.4.0-phase1-20260716.zip",
     "localZipSha256": "853210759F82E74D5977182DFEAF73D5EBA8BD56B18C6DBF7A5D11590A2FD7DF",
+    "formalGasZip": "backups/asset-record-v8.3.1-formal-gas-20260716.zip",
+    "formalGasZipSha256": "94C6200F0966BD9C02DD6474C9503A853E2B0C50A66AACDED6BEB9C63FC0FB42",
+    "accountAInitialBackupId": "1fhzXLpAIevvayG9uWHkMgh_523lZ8bL6cdkzDUMraeY",
+    "accountAInitialBackupName": "資產記錄_備份_20260716_1901_v8.4.0_首次建置完成",
+    "accountBInitialBackupId": "15DWyRcc91RtUWed0z4MDbdyLZ0ENAod3BA8XShPJIOk",
+    "accountBInitialBackupName": "資產記錄_備份_20260716_1842_v8.4.0_首次建置完成",
     "baselineCommit": "5fa7037a99e0bbbd296ab7338df410ec709d47f4",
     "baselineTag": "v8.3.1-pre-v8.4.0-20260716"
   },
@@ -18,14 +24,20 @@
     "idTokenMemoryOnly": true,
     "connectionStorageKeyedByGoogleSub": true,
     "gatewayExecuteAs": "USER_ACCESSING",
+    "accountBoundGatewayRelay": true,
+    "relayReloadsOnAccountSwitch": true,
+    "bridgeCacheBuster": "8.4.0-phase1g",
+    "driveAccessGuard": "DriveApp owner-or-editor check",
     "centralUserDatabase": false,
     "futureImportsImplemented": false,
     "futureBackupCenterImplemented": false,
     "futureUpgradeCenterImplemented": false,
-    "blankTemplateBuildCopyId": "1Uo5iePdwlIhelmFLMzLNmUzYaaG8GPpzXg8BPm9EkSg"
+    "blankTemplateBuildCopyId": "1Uo5iePdwlIhelmFLMzLNmUzYaaG8GPpzXg8BPm9EkSg",
+    "accountAFormalScriptId": "1Y9EdB2kvZv8U83EEnosEeztES9qG_jniU3Pue8es6Xen4itf_c8dkgKC",
+    "accountBFormalScriptId": "1dFh5L3yJxhUFbY-_frzXlYQrPMBqrzP5EFlo3XSdfIBGyJA7e7YKWJqB"
   },
   "tests": {
-    "v840NodeTests": { "tests": 13, "passed": 13, "failed": 0 },
+    "v840NodeTests": { "tests": 14, "passed": 14, "failed": 0 },
     "v81CoreAssertions": { "assertions": 30, "passed": true },
     "v82TrendAssertions": { "assertions": 25, "passed": true, "sampleCount": 91 },
     "v83ApiAssertions": { "assertions": 43, "passed": true },
@@ -50,7 +62,13 @@
       "accountAConnectionKey": "asset-record.connection.sub-A",
       "accountBConnectionKey": "asset-record.connection.sub-B",
       "uneditableForeignSheetRejected": true,
-      "liveTwoAccountTest": "PENDING_ACCOUNT_B_LOGIN"
+      "liveTwoAccountTest": {
+        "status": "PASS",
+        "accountAToB": "ACCESS_DENIED",
+        "accountBToA": "ACCESS_DENIED",
+        "accountAToA": "PASS",
+        "accountBToB": "PASS"
+      }
     }
   },
   "scopeGuards": {
@@ -61,9 +79,9 @@
     "xirrVariantsAdded": false
   },
   "liveValidation": {
-    "gatewayDeployment": "DEPLOYED_STAGING_VERSION_10",
+    "gatewayDeployment": "DEPLOYED_STAGING_VERSION_11",
     "gatewayDeploymentId": "AKfycbx7MMXnTkHyZQwoX2k7BZ7MiG5uSX9UdskuT0EPiBtIVi1m7DkUto8EaixemMpyvOuZ",
-    "gatewayBridgeHandshake": "PASS_MESSAGE_PORT_READY_CONFIRMED_IN_DEPLOYED_APPS_SCRIPT",
+    "gatewayBridgeHandshake": "PASS_MESSAGE_PORT_READY_FOR_ACCOUNTS_A_AND_B",
     "templateGasSync": "PUSHED_12_FILES_TO_BOUND_TEMPLATE_PROJECT",
     "templateSharing": "PASS_ANYONE_WITH_LINK_READER_NOT_DISCOVERABLE",
     "templatePrepareBlankOutput": {
@@ -75,14 +93,38 @@
       "performanceFormats": "PASS",
       "personalDataEmpty": true
     },
-    "accountAFirstTimeSetup": "READY_IDEMPOTENT_BACKUP_REUSED_TRIGGER_COUNT_1",
-    "validateSystemOutput": { "checks": 8, "passed": 8, "failed": 0 },
-    "frontendPrivateSheetApi": "PASS_FULL_DUPLEX_SMOKE_EXPECTED_AUTH_INVALID_RESPONSE",
-    "accountAAccountBIsolation": "PENDING_ACCOUNT_B_LOGIN",
-    "accountBAvailability": "IAB_ACCOUNT_A_ONLY_CHROME_NOT_RUNNING",
+    "accountAFirstTimeSetup": {
+      "status": "READY",
+      "spreadsheetId": "1PP-NPQuWIfrVsezlTtVXn_71bRR4d_LNOQ6XgLKIoXw",
+      "scriptId": "1Y9EdB2kvZv8U83EEnosEeztES9qG_jniU3Pue8es6Xen4itf_c8dkgKC",
+      "validationChecks": 8,
+      "validationPassed": 8,
+      "triggerCount": 1,
+      "transactionSequence": 431,
+      "cashFlowSequence": 41
+    },
+    "accountBFirstTimeSetup": {
+      "status": "READY",
+      "spreadsheetId": "1wukJYBJzpse0oQfB5LHaEPNrt3COgEJjYay72X7IM9w",
+      "scriptId": "1dFh5L3yJxhUFbY-_frzXlYQrPMBqrzP5EFlo3XSdfIBGyJA7e7YKWJqB",
+      "validationChecks": 8,
+      "validationPassed": 8,
+      "triggerCount": 1
+    },
+    "frontendPrivateSheetApi": "PASS_BOTH_ACCOUNTS_OWN_SHEETS",
+    "accountAOwnSheet": "PASS_EXISTING_PORTFOLIO_AND_TREND_DATA_READ",
+    "accountBOwnSheet": "PASS_EMPTY_PRIVATE_BUILD_READ",
+    "accountAAccountBIsolation": "PASS_BIDIRECTIONAL_ACCESS_DENIED",
+    "accountSwitchRelay": "PASS_AUTHUSER_REBOUND_HASH_RELOAD_AND_CACHE_BUSTER",
+    "performanceFrontend": {
+      "singleXirrAnnualizedColumn": true,
+      "traditionalChineseTypes": true,
+      "twdAmountLabels": true,
+      "normalNegativeReturns": true,
+      "nonFiniteFallback": "—",
+      "timestampPercentageRegression": false
+    },
     "githubPagesProductionSwitch": "NOT_STARTED"
   },
-  "knownLimits": [
-    "沒有第二個已驗證 Google 帳號與互不共享的測試 Sheet，因此不得宣稱完成正式 A／B 隔離驗收。"
-  ]
+  "knownLimits": []
 }

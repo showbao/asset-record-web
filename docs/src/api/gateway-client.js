@@ -9,6 +9,7 @@
   var bridgeResponses = new Map();
   var BRIDGE_CHANNEL = 'asset-record-gateway-v840';
   var BRIDGE_WINDOW_NAME = 'asset-record-gateway-v840';
+  var BRIDGE_BUILD = '8.4.0-phase1g';
 
   function ApiError(code, message, data) { this.name = 'ApiError'; this.code = code || 'INTERNAL_ERROR'; this.message = message || '發生未預期的錯誤'; this.data = data || {}; if (Error.captureStackTrace) Error.captureStackTrace(this, ApiError); }
   ApiError.prototype = Object.create(Error.prototype); ApiError.prototype.constructor = ApiError;
@@ -17,7 +18,13 @@
   function setConnection(connection) { activeConnection = connection || null; }
   function getConnection() { return activeConnection ? Object.assign({}, activeConnection) : null; }
 
-  function callbackUrl() { return new URL('bridge-relay.html', root.location.href).href.split('#')[0].split('?')[0]; }
+  function callbackUrl() {
+    var url = new URL('bridge-relay.html', root.location.href);
+    url.hash = '';
+    url.search = '';
+    url.searchParams.set('v', BRIDGE_BUILD);
+    return url.href;
+  }
 
   function rejectReadyWaiters(error) {
     var waiters = bridgeReadyWaiters.splice(0);
@@ -53,12 +60,15 @@
 
   function authorizeGateway() {
     gatewayUrl();
+    var profile = root.AssetRecordSession && root.AssetRecordSession.getProfile();
+    if (!profile || !profile.email) throw new ApiError('AUTH_REQUIRED', '請先使用 Google 帳號登入');
     bridgeReady = false;
     bridgeSessionId = 'session-' + uuid();
     var reopenedError = new ApiError('GATEWAY_REOPENED', 'Gateway 視窗正在重新開啟');
     rejectReadyWaiters(reopenedError);
     rejectBridgeResponses(reopenedError);
-    bridgeWindow = root.open(callbackUrl() + '#' + encodeURIComponent(bridgeSessionId), BRIDGE_WINDOW_NAME, 'popup,width=540,height=680');
+    var relayHash = 'session=' + encodeURIComponent(bridgeSessionId) + '&account=' + encodeURIComponent(String(profile.email).trim().toLowerCase());
+    bridgeWindow = root.open(callbackUrl() + '#' + relayHash, BRIDGE_WINDOW_NAME, 'popup,width=540,height=680');
     if (!bridgeWindow) throw new ApiError('POPUP_BLOCKED', '瀏覽器封鎖了 Gateway 視窗，請允許此網站開啟彈出式視窗');
     return true;
   }
