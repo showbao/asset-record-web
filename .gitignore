@@ -5,7 +5,5 @@ Thumbs.db
 .env.*
 node_modules/
 coverage/
-backups/
 secret*
 *credential*
-**/.clasp.json
