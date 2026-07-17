@@ -376,7 +376,15 @@
   }
 
   function currentLoader() {
-    return { overview: loadOverview, performance: loadPerformance, assets: loadAssets, transactions: loadTransactions, cashflows: loadCashFlows, jobs: loadJobs }[state.view];
+    return {
+      overview: loadOverview,
+      performance: loadPerformance,
+      assets: loadAssets,
+      transactions: loadTransactions,
+      cashflows: loadCashFlows,
+      jobs: loadJobs,
+      backup: function () { return window.AssetRecordBackupRestorePage.load(); }
+    }[state.view];
   }
   function switchView(view) {
     state.view = view;
