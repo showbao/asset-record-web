@@ -308,7 +308,7 @@ function validatePostRestore_(operation) {
   var protectedState = operation.protectedState || {};
   check('備份紀錄未被來源資料覆蓋', backupLogRowsV84_().length >= toNumber_(protectedState.backupLogCount, 0) + 1, '備份紀錄筆數異常減少');
   check('正式試算表 ID 保持不變', !protectedState.primarySpreadsheetId || SpreadsheetApp.getActiveSpreadsheet().getId() === protectedState.primarySpreadsheetId, '正式試算表 ID 被改變');
-  check('API 金鑰設定未被覆蓋', cleanText_(properties.getProperty(V83_PROPERTIES.API_KEY_HASH)) === cleanText_(protectedState.apiKeyHash) && cleanText_(properties.getProperty(V83_PROPERTIES.API_KEY_LAST4)) === cleanText_(protectedState.apiKeyLast4) && cleanText_(properties.getProperty(V83_PROPERTIES.API_KEY_CREATED_AT)) === cleanText_(protectedState.apiKeyCreatedAt), '登入金鑰設定被還原資料覆蓋');
+  check('帳密驗證設定未被覆蓋', authModeV85_() === cleanText_(protectedState.authMode) && cleanText_(properties.getProperty(V85_AUTH.PROPERTIES.USERNAME)) === cleanText_(protectedState.authUsername) && cleanText_(properties.getProperty(V85_AUTH.PROPERTIES.PASSWORD_VERSION)) === cleanText_(protectedState.authPasswordVersion), '帳密驗證設定被還原資料覆蓋');
   var triggerCount = ScriptApp.getProjectTriggers().filter(function (trigger) { return trigger.getHandlerFunction() === V84_BACKUP.HANDLER_NAME; }).length;
   check('每日觸發器正好一個', triggerCount === 1, '每日觸發器數量不是 1', { count: triggerCount });
   return { valid: errors.length === 0, errors: errors, warnings: warnings, checks: checks, sourceSummary: actual, snapshots: snapshots, triggerCount: triggerCount };

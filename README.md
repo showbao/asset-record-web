@@ -10,7 +10,7 @@
 - `gas/`：正式 Sheet 綁定式 Apps Script 原始碼。
 - `tests/`：v8.1～v8.5 的安全、API、計算、備份與還原回歸測試。
 
-試算表資料、密碼、衍生值、Session Token、Pepper、舊 API 金鑰、OAuth 憑證與 `.clasp.json` 不得加入版本控制。
+試算表資料、密碼、衍生值、Session Token、Pepper、驗證 Properties、OAuth 憑證與 `.clasp.json` 不得加入版本控制。
 
 ## v8.5 重點
 

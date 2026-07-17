@@ -124,20 +124,5 @@ function authenticateApiRequestV85_(request, action, options) {
   if (isPublicAuthActionV85_(action)) return null;
   if (isAuthActionV85_(action)) return requireSessionV85_(request.sessionToken, options);
   if (cleanText_(request.sessionToken)) return requireSessionV85_(request.sessionToken, options);
-  if (authModeV85_(options) === V85_AUTH.MODE_DUAL && cleanText_(request.apiKey)) {
-    validateApiKeyV83_(request.apiKey, options);
-    return { id: 'legacy-dual', legacy: true };
-  }
-  if (cleanText_(request.apiKey)) throwApiErrorV83_('AUTH_LEGACY_DISABLED', '舊登入方式已停用，請使用帳號密碼登入');
   throwApiErrorV83_('AUTH_REQUIRED', '請先登入');
-}
-
-function finalizePasswordSessionMigrationV85() {
-  assertMutationAllowedV84_();
-  if (!isAuthConfiguredV85_()) throw new Error('尚未設定網頁登入帳密，不能切換正式模式');
-  var properties = authPropertyStoreV85_();
-  properties.setProperty(V85_AUTH.PROPERTIES.MODE, V85_AUTH.MODE_PASSWORD_SESSION);
-  ['V83_API_KEY_HASH', 'V83_API_KEY_LAST4', 'V83_API_KEY_CREATED_AT'].forEach(function (key) { properties.deleteProperty(key); });
-  onOpen();
-  return apiResult_(true, 'OK', '已切換為 PASSWORD_SESSION 並移除舊金鑰', authStatusApiV85_());
 }

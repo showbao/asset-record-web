@@ -176,9 +176,9 @@ function prepareRestore_(backupId, options) {
         completedSheets: [],
         rollbackMode: false,
         protectedState: {
-          apiKeyHash: cleanText_(properties.getProperty(V83_PROPERTIES.API_KEY_HASH)),
-          apiKeyLast4: cleanText_(properties.getProperty(V83_PROPERTIES.API_KEY_LAST4)),
-          apiKeyCreatedAt: cleanText_(properties.getProperty(V83_PROPERTIES.API_KEY_CREATED_AT)),
+          authMode: authModeV85_(),
+          authUsername: cleanText_(properties.getProperty(V85_AUTH.PROPERTIES.USERNAME)),
+          authPasswordVersion: cleanText_(properties.getProperty(V85_AUTH.PROPERTIES.PASSWORD_VERSION)),
           primarySpreadsheetId: cleanText_(SpreadsheetApp.getActiveSpreadsheet().getId()),
           backupLogCount: backupLogRowsV84_().length,
           systemVersion: V81.VERSION,

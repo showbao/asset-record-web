@@ -9,11 +9,8 @@ const gasFiles = fs.readdirSync(gasDir).filter((name) => name.endsWith('.gs')).s
 const source = gasFiles.map((name) => fs.readFileSync(path.join(gasDir, name), 'utf8')).join('\n') + `
 globalThis.__test = {
   V81,
-  V83_PROPERTIES,
-  hashApiKeyV83_,
-  constantTimeEqualsV83_,
-  generateApiKeyV83_,
-  validateApiKeyV83_,
+  V85_AUTH,
+  createSessionV85_,
   parsePaginationV83_,
   paginateV83_,
   ensureAllowedKeysV83_,
@@ -40,6 +37,12 @@ const context = vm.createContext({
     computeDigest(_algorithm, text) {
       return Array.from(crypto.createHash('sha256').update(String(text), 'utf8').digest());
     },
+    computeHmacSha256Signature(value, secret) {
+      return Array.from(crypto.createHmac('sha256', String(secret)).update(String(value), 'utf8').digest());
+    },
+    base64EncodeWebSafe(bytes) {
+      return Buffer.from(Array.from(bytes, (value) => value < 0 ? value + 256 : value)).toString('base64url');
+    },
     getUuid() {
       uuidSequence += 1;
       return `00000000-0000-4000-8000-${String(uuidSequence).padStart(12, '0')}`;
@@ -65,6 +68,9 @@ const context = vm.createContext({
       outputs.push(output);
       return output;
     }
+  },
+  LockService: {
+    getScriptLock() { return { tryLock() { return true; }, releaseLock() {} }; }
   }
 });
 
@@ -76,17 +82,6 @@ assert.equal(t.V81.SCHEMA_VERSION, '8.5.0');
 assert.equal(gasFiles.length, 19);
 assert.ok(gasFiles.includes('70_Api.gs'));
 assert.ok(!gasFiles.includes('61_TrendValidation.gs'));
-
-const key = t.generateApiKeyV83_();
-assert.match(key, /^arv83_[0-9a-f]{96}$/);
-assert.ok(key.length * 4 >= 256);
-const hash = t.hashApiKeyV83_(key);
-assert.equal(hash, crypto.createHash('sha256').update(key).digest('hex'));
-assert.equal(t.constantTimeEqualsV83_(hash, hash), true);
-assert.equal(t.constantTimeEqualsV83_(hash, hash.slice(1)), false);
-assert.doesNotThrow(() => t.validateApiKeyV83_(key, { expectedHash: hash }));
-assert.throws(() => t.validateApiKeyV83_('', { expectedHash: hash }), (error) => error.apiCode === 'AUTH_REQUIRED');
-assert.throws(() => t.validateApiKeyV83_('wrong', { expectedHash: hash }), (error) => error.apiCode === 'AUTH_INVALID');
 
 assert.deepEqual(JSON.parse(JSON.stringify(t.parsePaginationV83_({}))), { page: 1, pageSize: 25 });
 assert.deepEqual(JSON.parse(JSON.stringify(t.parsePaginationV83_({ page: 2, pageSize: 100 }))), { page: 2, pageSize: 100 });
@@ -114,12 +109,16 @@ assert.equal(Object.hasOwn(mappedTransaction, 'importBatchId'), false);
 assert.equal(JSON.stringify(mappedTransaction).includes('hidden'), false);
 
 const properties = t.memoryPropertiesV83_();
-properties.setProperty('AUTH_MODE', 'DUAL');
+properties.setProperty('AUTH_MODE', 'PASSWORD_SESSION');
+properties.setProperty('AUTH_SESSION_SECRET', crypto.randomBytes(32).toString('base64url'));
+properties.setProperty('AUTH_PASSWORD_VERSION', '1');
+properties.setProperty('AUTH_SESSION_VERSION', '1');
 const options = {
-  expectedHash: hash,
   properties,
   settings: { NEEDS_RECALC: 'TRUE', DAILY_JOB_ENABLED: 'TRUE', DAILY_JOB_TIME: '07:30' }
 };
+const sessionToken = crypto.createHash('sha256').update('v83-api-session').digest('base64url');
+t.createSessionV85_(sessionToken, false, options);
 const queued = t.requestJobApiV83_('rebuild', options);
 assert.equal(queued.success, true);
 assert.equal(queued.code, 'OK');
@@ -127,17 +126,16 @@ assert.equal(queued.data.rebuild.status, 'pending');
 const duplicate = t.requestJobApiV83_('rebuild', options);
 assert.equal(duplicate.success, true);
 assert.equal(duplicate.code, 'ALREADY_PENDING');
-const blockedLegacyRebuild = t.handleApiRequestV83_({ action: 'requestRebuild', apiKey: key, requestId: 'req-1', params: {}, payload: {} }, options);
-assert.equal(blockedLegacyRebuild.success, false);
-assert.equal(blockedLegacyRebuild.code, 'AUTH_REQUIRED');
+const blockedUnauthenticatedRebuild = t.handleApiRequestV83_({ action: 'requestRebuild', requestId: 'req-1', params: {}, payload: {} }, options);
+assert.equal(blockedUnauthenticatedRebuild.success, false);
+assert.equal(blockedUnauthenticatedRebuild.code, 'AUTH_REQUIRED');
 
-const invalidAction = t.handleApiRequestV83_({ action: 'missingAction', apiKey: key, requestId: 'req-3', params: {}, payload: {} }, options);
+const invalidAction = t.handleApiRequestV83_({ action: 'missingAction', sessionToken, requestId: 'req-3', params: {}, payload: {} }, options);
 assert.equal(invalidAction.code, 'ACTION_NOT_FOUND');
-const invalidField = t.handleApiRequestV83_({ action: 'requestRebuild', apiKey: key, requestId: 'req-4', params: {}, payload: {}, extra: 1 }, options);
+const invalidField = t.handleApiRequestV83_({ action: 'requestRebuild', sessionToken, requestId: 'req-4', params: {}, payload: {}, extra: 1 }, options);
 assert.equal(invalidField.code, 'INVALID_REQUEST');
-const invalidKey = t.handleApiRequestV83_({ action: 'requestRebuild', apiKey: 'bad', requestId: 'req-5', params: {}, payload: {} }, options);
-assert.equal(invalidKey.code, 'AUTH_INVALID');
-assert.equal(JSON.stringify(invalidKey).includes(hash), false);
+const invalidSession = t.handleApiRequestV83_({ action: 'getJobStatus', sessionToken: crypto.createHash('sha256').update('invalid-session').digest('base64url'), requestId: 'req-5', params: {}, payload: {} }, options);
+assert.equal(invalidSession.code, 'AUTH_SESSION_EXPIRED');
 
 const health = JSON.parse(t.doGet().text);
 assert.equal(health.success, true);
@@ -151,7 +149,7 @@ const tooLarge = JSON.parse(t.doPost({ postData: { contents: 'x'.repeat(102401) 
 assert.equal(tooLarge.code, 'PAYLOAD_TOO_LARGE');
 
 const apiSource = fs.readFileSync(path.join(gasDir, '70_Api.gs'), 'utf8');
-assert.ok(apiSource.includes('properties.setProperty(V85_AUTH.PROPERTIES.MODE, V85_AUTH.MODE_DUAL)'));
+assert.ok(apiSource.includes('properties.setProperty(V85_AUTH.PROPERTIES.MODE, V85_AUTH.MODE_PASSWORD_SESSION)'));
 assert.ok(apiSource.includes("operations.requestRebuild = requestJobApiV83_('rebuild', apiOptions)"));
 for (const action of [
   'listAssets', 'getAsset', 'createAsset', 'updateAsset', 'disableAsset',
@@ -159,7 +157,13 @@ for (const action of [
   'listExternalCashFlows', 'getExternalCashFlow', 'createExternalCashFlow', 'updateExternalCashFlow', 'deleteExternalCashFlow', 'restoreExternalCashFlow',
   'getDashboardSummary', 'getPerformanceList', 'getTrendData', 'requestRebuild', 'requestMarketRefresh', 'getJobStatus'
 ]) assert.ok(apiSource.includes(`'${action}'`), `missing API action ${action}`);
-assert.equal(/return\s+apiResult_?V?83?_?\([^\n]*apiKey/i.test(apiSource), false);
+const removedAuthMarkers = [
+  ['API', '_KEY'].join(''),
+  ['api', 'Key'].join(''),
+  ['generate', 'Api', 'Key'].join(''),
+  ['validate', 'Api', 'Key'].join('')
+];
+removedAuthMarkers.forEach((marker) => assert.equal(source.includes(marker), false));
 assert.equal(/onEdit\s*\(/.test(source), false);
 
-console.log(JSON.stringify({ ok: true, assertions: 46, gasFiles }, null, 2));
+console.log(JSON.stringify({ ok: true, assertions: 36, gasFiles }, null, 2));

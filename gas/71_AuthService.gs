@@ -116,7 +116,7 @@ function saveCredentialVerifierV85_(payload, options) {
     var sessionSecret = cleanText_(properties.getProperty(V85_AUTH.PROPERTIES.SESSION_SECRET)) || envelope.sessionSecretCandidate;
     var version = (Number(properties.getProperty(V85_AUTH.PROPERTIES.PASSWORD_VERSION)) || 0) + 1;
     var values = {};
-    values[V85_AUTH.PROPERTIES.MODE] = cleanText_(properties.getProperty(V85_AUTH.PROPERTIES.MODE)) || V85_AUTH.MODE_DUAL;
+    values[V85_AUTH.PROPERTIES.MODE] = V85_AUTH.MODE_PASSWORD_SESSION;
     values[V85_AUTH.PROPERTIES.USERNAME] = envelope.username;
     values[V85_AUTH.PROPERTIES.PASSWORD_VERIFIER] = credentialVerifierV85_(envelope.derivedKey, pepper);
     values[V85_AUTH.PROPERTIES.PASSWORD_SALT] = envelope.salt;

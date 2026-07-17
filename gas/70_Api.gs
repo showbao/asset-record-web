@@ -1,7 +1,4 @@
 var V83_PROPERTIES = Object.freeze({
-  API_KEY_HASH: 'V83_API_KEY_HASH',
-  API_KEY_LAST4: 'V83_API_KEY_LAST4',
-  API_KEY_CREATED_AT: 'V83_API_KEY_CREATED_AT',
   BACKUP_ID: 'V83_PREDEPLOY_BACKUP_ID',
   MARKET_STATUS: 'V83_MARKET_REFRESH_STATUS',
   MARKET_REQUESTED_AT: 'V83_MARKET_REFRESH_REQUESTED_AT',
@@ -59,32 +56,8 @@ function bytesToHexV83_(bytes) {
   }).join('');
 }
 
-function hashApiKeyV83_(apiKey) {
-  return bytesToHexV83_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(apiKey || ''), Utilities.Charset.UTF_8));
-}
-
-function constantTimeEqualsV83_(left, right) {
-  left = String(left || '');
-  right = String(right || '');
-  var length = Math.max(left.length, right.length);
-  var difference = left.length ^ right.length;
-  for (var index = 0; index < length; index++) difference |= (left.charCodeAt(index) || 0) ^ (right.charCodeAt(index) || 0);
-  return difference === 0;
-}
-
-function generateApiKeyV83_() {
-  var random = [Utilities.getUuid(), Utilities.getUuid(), Utilities.getUuid()].join('').replace(/-/g, '');
-  return 'arv83_' + random;
-}
-
 function propertyStoreV83_(options) {
   return options && options.properties ? options.properties : PropertiesService.getScriptProperties();
-}
-
-function validateApiKeyV83_(apiKey, options) {
-  if (!cleanText_(apiKey)) throwApiErrorV83_('AUTH_REQUIRED', '請輸入 API 金鑰');
-  var expectedHash = options && options.expectedHash ? options.expectedHash : propertyStoreV83_(options).getProperty(V83_PROPERTIES.API_KEY_HASH);
-  if (!expectedHash || !constantTimeEqualsV83_(hashApiKeyV83_(apiKey), expectedHash)) throwApiErrorV83_('AUTH_INVALID', 'API 金鑰無效');
 }
 
 function ensureAllowedKeysV83_(object, allowed, label) {
@@ -570,7 +543,7 @@ function routeApiActionV83_(action, params, payload, options, requestId) {
 function handleApiRequestV83_(request, options) {
   var requestId = cleanText_(request && request.requestId);
   try {
-    ensureAllowedKeysV83_(request || {}, ['action', 'apiKey', 'sessionToken', 'elevatedToken', 'requestId', 'params', 'payload'], 'request');
+    ensureAllowedKeysV83_(request || {}, ['action', 'sessionToken', 'elevatedToken', 'requestId', 'params', 'payload'], 'request');
     if (requestId.length > 128) throwApiErrorV83_('INVALID_REQUEST', 'requestId 長度不得超過 128');
     var action = cleanText_(request && request.action);
     if (!action) throwApiErrorV83_('INVALID_REQUEST', 'action 必填');
@@ -615,49 +588,14 @@ function doPost(e) {
   }
 }
 
-function storeApiKeyV83_(apiKey) {
-  var properties = PropertiesService.getScriptProperties();
-  properties.setProperty(V83_PROPERTIES.API_KEY_HASH, hashApiKeyV83_(apiKey));
-  properties.setProperty(V83_PROPERTIES.API_KEY_LAST4, apiKey.slice(-4));
-  properties.setProperty(V83_PROPERTIES.API_KEY_CREATED_AT, nowSheet_());
-  return { last4: apiKey.slice(-4), createdAt: nowSheet_() };
-}
-
-function showApiKeyOnceV83_(apiKey) {
-  try {
-    SpreadsheetApp.getUi().alert('資產記錄 Web API 金鑰（只顯示這一次）', apiKey + '\n\n請立即複製到 GitHub Pages 登入畫面；關閉後無法查回，只能重新產生。', SpreadsheetApp.getUi().ButtonSet.OK);
-    return true;
-  } catch (ignore) {
-    return false;
-  }
-}
-
-function rotateApiKeyV83() {
-  try {
-    assertMutationAllowedV84_();
-    var apiKey = generateApiKeyV83_();
-    var metadata = storeApiKeyV83_(apiKey);
-    var shown = showApiKeyOnceV83_(apiKey);
-    return apiResult_(true, 'OK', shown ? 'API 金鑰已輪替並顯示一次' : 'API 金鑰已輪替；請從試算表選單再執行一次以顯示', { last4: metadata.last4, createdAt: metadata.createdAt, displayed: shown });
-  } catch (error) {
-    return apiResult_(false, 'API_KEY_ROTATION_FAILED', error.message, {});
-  }
-}
-
 function installV831() {
   if (/^8\.5\./.test(V81.VERSION) && typeof installV85 === 'function') return installV85();
   if (/^8\.4\./.test(V81.VERSION) && typeof installV84 === 'function') return installV84();
-  var generatedKey = '';
   try {
     var result = withDocumentLock_(function () {
       var schema = ensureV81Schema_();
       var sequences = initializeIdSequences_();
       var trigger = installDailyTriggerV82_();
-      var properties = PropertiesService.getScriptProperties();
-      if (!cleanText_(properties.getProperty(V83_PROPERTIES.API_KEY_HASH))) {
-        generatedKey = generateApiKeyV83_();
-        storeApiKeyV83_(generatedKey);
-      }
       setSettingValues_({
         SYSTEM_VERSION: V81.VERSION,
         SCHEMA_VERSION: V81.SCHEMA_VERSION,
@@ -672,12 +610,9 @@ function installV831() {
         schema: schema,
         sequences: sequences,
         trigger: trigger,
-        apiKeyCreated: Boolean(generatedKey),
-        apiKeyLast4: properties.getProperty(V83_PROPERTIES.API_KEY_LAST4) || null,
         next: ['rebuildAllPerformance()', 'validateV831PerformanceAndApi()', 'validatePhase1()', 'validatePhase2()', 'validatePhase3()']
       });
     });
-    if (generatedKey) showApiKeyOnceV83_(generatedKey);
     return result;
   } catch (error) {
     return apiResult_(false, 'INSTALL_V831_FAILED', error.message, {});
@@ -805,18 +740,22 @@ function validatePhase3InternalV83_(options) {
     names = createValidationSheetsV83_();
     var serviceContext = { sheets: names, validationMode: true, skipDirty: true, dirtyEvents: [], sequences: { V81_TX_SEQUENCE: 0, V81_CFX_SEQUENCE: 0 } };
     var properties = memoryPropertiesV83_();
-    properties.setProperty(V85_AUTH.PROPERTIES.MODE, V85_AUTH.MODE_DUAL);
-    var validationKey = 'v83-validation-key';
+    properties.setProperty(V85_AUTH.PROPERTIES.MODE, V85_AUTH.MODE_PASSWORD_SESSION);
+    properties.setProperty(V85_AUTH.PROPERTIES.SESSION_SECRET, randomServerSecretV85_());
+    properties.setProperty(V85_AUTH.PROPERTIES.PASSWORD_VERSION, '1');
+    properties.setProperty(V85_AUTH.PROPERTIES.SESSION_VERSION, '1');
+    var validationSession = randomServerSecretV85_();
     var apiOptions = {
       serviceContext: serviceContext,
       properties: properties,
-      expectedHash: hashApiKeyV83_(validationKey),
+      skipLock: true,
       settings: { NEEDS_RECALC: 'FALSE', DAILY_JOB_ENABLED: 'TRUE', DAILY_JOB_TIME: '07:30' }
     };
-    function call(action, params, payload, key) {
-      return handleApiRequestV83_({ action: action, apiKey: key == null ? validationKey : key, requestId: 'test-' + action, params: params || {}, payload: payload || {} }, apiOptions);
+    createSessionV85_(validationSession, false, apiOptions);
+    function call(action, params, payload, sessionToken) {
+      return handleApiRequestV83_({ action: action, sessionToken: sessionToken === undefined ? validationSession : sessionToken, requestId: 'test-' + action, params: params || {}, payload: payload || {} }, apiOptions);
     }
-    operations.unauthorized = call('listAssets', {}, {}, 'wrong-key');
+    operations.unauthorized = call('listAssets', {}, {}, '');
     operations.createAsset = call('createAsset', {}, { code: 'V83TEST', name: 'V8.3 測試標的', type: 'tw_stock', tradeCurrency: 'TWD', navCurrency: 'TWD', enabled: true, updatePrice: false, priceSource: 'manual' });
     operations.updateAsset = call('updateAsset', { code: 'V83TEST' }, { note: 'updated' });
     operations.getAsset = call('getAsset', { code: 'V83TEST' });
@@ -840,7 +779,7 @@ function validatePhase3InternalV83_(options) {
     operations.requestRebuild = requestJobApiV83_('rebuild', apiOptions);
     operations.requestRebuildAgain = requestJobApiV83_('rebuild', apiOptions);
 
-    validationCheck_(checks, '未授權 API 請求被拒絕', !operations.unauthorized.success && operations.unauthorized.code === 'AUTH_INVALID', operations.unauthorized);
+    validationCheck_(checks, '未授權 API 請求被拒絕', !operations.unauthorized.success && operations.unauthorized.code === 'AUTH_REQUIRED', operations.unauthorized);
     validationCheck_(checks, '標的 CRUD 與停用', operations.createAsset.success && operations.updateAsset.success && operations.getAsset.success && operations.disableAsset.success && operations.disableAssetAgain.code === 'ALREADY_DISABLED', operations);
     validationCheck_(checks, '交易 CRUD、軟刪除與還原', operations.createTransaction.success && operations.updateTransaction.success && operations.deleteTransaction.success && operations.deleteTransactionAgain.code === 'ALREADY_DELETED' && operations.restoreTransaction.success, operations);
     validationCheck_(checks, 'API 超賣阻擋', !operations.oversell.success && operations.oversell.code === 'OVERSELL', operations.oversell);

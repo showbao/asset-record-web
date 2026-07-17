@@ -14,7 +14,7 @@ function sendJson(response, data) {
 let restoreOperation = null;
 
 function mockData(action, request) {
-  if (action === 'auth.status') return { configured: true, mode: 'DUAL', algorithm: 'PBKDF2-HMAC-SHA256', locked: false, version: '8.5.0' };
+  if (action === 'auth.status') return { configured: true, mode: 'PASSWORD_SESSION', algorithm: 'PBKDF2-HMAC-SHA256', locked: false, version: '8.5.0' };
   if (action === 'auth.begin') return { algorithm: 'PBKDF2-HMAC-SHA256', salt: 'MDEyMzQ1Njc4OWFiY2RlZg', iterations: 200000, passwordVersion: 1 };
   if (action === 'auth.login') return { sessionId: 'mock-session', expiresAt: '2026-07-24T12:00:00+08:00', rememberMe: Boolean(request.payload.rememberMe) };
   if (action === 'auth.getSession') return { sessionId: 'mock-session', username: 'mockuser', expiresAt: '2026-07-24T12:00:00+08:00', rememberMe: false };
@@ -35,7 +35,7 @@ function mockData(action, request) {
     meta: { needsRecalc: false }
   };
   if (action === 'cashflows.list') return { items: [{ id: 'CF-1', date: '2026-07-01', type: '入金', amount: 50000, currency: 'TWD', amountTwd: 50000, deletedAt: null, note: '每月投入' }], page: 1, pageSize: 50, total: 1, totalPages: 1, hasNext: false, meta: { needsRecalc: false } };
-  if (action === 'system.getStatus') return { version: '8.5.0', schemaVersion: '8.5.0', auth: { configured: true, mode: 'DUAL', locked: false, lockedUntil: null, activeSessions: 1, maximumSessions: 5 }, jobs: { daily: { enabled: true, time: '07:30', lastRunAt: '2026-07-17T07:31:00+08:00', status: 'PASS' }, marketRefresh: { status: 'idle', finishedAt: '2026-07-17T07:31:00+08:00', error: null }, rebuild: { status: 'idle', finishedAt: '2026-07-17T07:31:00+08:00' }, needsRecalc: false, systemMode: 'NORMAL', trendCursor: {} }, meta: { needsRecalc: false, lastValidationAt: '2026-07-17T07:35:00+08:00', lastValidationStatus: 'PASS' } };
+  if (action === 'system.getStatus') return { version: '8.5.0', schemaVersion: '8.5.0', auth: { configured: true, mode: 'PASSWORD_SESSION', locked: false, lockedUntil: null, activeSessions: 1, maximumSessions: 5 }, jobs: { daily: { enabled: true, time: '07:30', lastRunAt: '2026-07-17T07:31:00+08:00', status: 'PASS' }, marketRefresh: { status: 'idle', finishedAt: '2026-07-17T07:31:00+08:00', error: null }, rebuild: { status: 'idle', finishedAt: '2026-07-17T07:31:00+08:00' }, needsRecalc: false, systemMode: 'NORMAL', trendCursor: {} }, meta: { needsRecalc: false, lastValidationAt: '2026-07-17T07:35:00+08:00', lastValidationStatus: 'PASS' } };
   if (action === 'getJobStatus') return { system: { needsRecalc: false }, marketRefresh: {}, rebuild: {} };
   if (action === 'getDashboardSummary') return { summary: { allocation: {}, netAssetTwd: 0 }, meta: { needsRecalc: false } };
   if (action === 'getTrendData') return { items: [] };
