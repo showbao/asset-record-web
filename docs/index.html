@@ -4,15 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>資產記錄</title>
+  <title>資產記錄 v8.4.0</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="backup-restore/backup-restore.css">
 </head>
 <body>
   <noscript>此操作介面需要 JavaScript。</noscript>
 
   <main id="loginView" class="login-shell">
     <section class="login-card" aria-labelledby="loginTitle">
-      <div class="eyebrow">ASSET RECORD · V8.3.1</div>
+      <div class="eyebrow">ASSET RECORD · V8.4.0</div>
       <h1 id="loginTitle">把投資全貌，留在自己手上。</h1>
       <p>金鑰只保存在這個分頁的 sessionStorage，關閉分頁或登出後即清除。</p>
       <form id="loginForm" class="stack">
@@ -47,6 +48,7 @@
       <button type="button" data-view="transactions">交易</button>
       <button type="button" data-view="cashflows">外部出入金</button>
       <button type="button" data-view="jobs">工作狀態</button>
+      <button type="button" data-view="backup">備份與還原</button>
     </nav>
 
     <main class="content">
@@ -126,6 +128,30 @@
         </div>
         <p class="muted">維護要求只會排隊，統一由每日約 07:30 的唯一排程處理。</p>
       </section>
+
+      <section id="view-backup" class="view backup-page" aria-labelledby="backupTitle" hidden>
+        <div class="section-head">
+          <div><p class="eyebrow">SYSTEM SETTINGS</p><h1 id="backupTitle">備份與還原</h1></div>
+          <div class="section-actions">
+            <button id="restoreData" class="ghost" type="button">還原資料</button>
+            <button id="newBackup" class="primary" type="button">建立新備份</button>
+          </div>
+        </div>
+        <p class="muted">完整備份會複製目前 Google Sheet，但不會切換正式檔案或 API 連線。</p>
+        <div id="backupOverview" class="backup-overview" aria-live="polite"></div>
+        <div id="restoreRecovery" class="restore-recovery" aria-live="assertive" hidden></div>
+        <article class="panel backup-list-panel">
+          <div class="panel-title backup-list-head">
+            <div><h2>備份清單</h2><span>預設只顯示已驗證且可用的備份</span></div>
+            <div class="backup-list-actions">
+              <label class="inline-check"><input id="showInvalidBackups" type="checkbox"> 顯示無效備份</label>
+              <button id="addLegacyBackup" class="ghost" type="button">加入其他備份檔</button>
+              <button id="refreshBackups" class="ghost" type="button">更新清單</button>
+            </div>
+          </div>
+          <div id="backupTable" class="table-wrap backup-table"></div>
+        </article>
+      </section>
     </main>
   </div>
 
@@ -138,9 +164,47 @@
     </form>
   </dialog>
 
+  <dialog id="backupWizardDialog" class="wizard-dialog">
+    <form id="backupWizardForm" method="dialog" class="dialog-card wizard-card">
+      <div class="dialog-head">
+        <div><p id="backupWizardStep" class="eyebrow">步驟 1 / 5</p><h2 id="backupWizardTitle">目前狀態</h2></div>
+        <button id="closeBackupWizard" type="button" class="icon-button" aria-label="關閉">×</button>
+      </div>
+      <div id="backupWizardBody" class="wizard-body" aria-live="polite"></div>
+      <p id="backupWizardError" class="form-error" role="alert"></p>
+      <div id="backupWizardActions" class="dialog-actions"></div>
+    </form>
+  </dialog>
+
+  <dialog id="restoreWizardDialog" class="wizard-dialog restore-wizard-dialog">
+    <form id="restoreWizardForm" method="dialog" class="dialog-card wizard-card">
+      <div class="dialog-head">
+        <div><p id="restoreWizardStep" class="eyebrow">步驟 1 / 6</p><h2 id="restoreWizardTitle">選擇備份</h2></div>
+        <button id="closeRestoreWizard" type="button" class="icon-button" aria-label="關閉">×</button>
+      </div>
+      <div id="restoreWizardBody" class="wizard-body" aria-live="polite"></div>
+      <p id="restoreWizardError" class="form-error" role="alert"></p>
+      <div id="restoreWizardActions" class="dialog-actions"></div>
+    </form>
+  </dialog>
+
+  <dialog id="legacyBackupDialog">
+    <form id="legacyBackupForm" class="dialog-card">
+      <div class="dialog-head"><h2>加入其他備份檔</h2><button id="closeLegacyBackup" type="button" class="icon-button" aria-label="關閉">×</button></div>
+      <p class="muted">貼上舊版 Google Sheet 備份網址。系統只會讀取、檢查並登記，不會修改該檔案。</p>
+      <label class="reauth-field">Google Sheet 網址<input id="legacyBackupUrl" type="url" required placeholder="https://docs.google.com/spreadsheets/d/…/edit" autocomplete="off"></label>
+      <p id="legacyBackupError" class="form-error" role="alert"></p>
+      <div class="dialog-actions"><button id="cancelLegacyBackup" type="button" class="ghost">取消</button><button id="saveLegacyBackup" type="submit" class="primary">檢查並加入</button></div>
+    </form>
+  </dialog>
+
   <script src="config.js"></script>
   <script src="api-client.js"></script>
   <script src="ui-format.js"></script>
+  <script src="backup-restore/backup-restore-api.js"></script>
+  <script src="backup-restore/backup-wizard.js"></script>
+  <script src="backup-restore/restore-wizard.js"></script>
+  <script src="backup-restore/backup-restore-page.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
