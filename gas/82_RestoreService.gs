@@ -8,29 +8,6 @@ function normalizeRestoreOptionsV84_(options) {
   return normalized;
 }
 
-function issueRestoreElevatedTokenV84_(credential) {
-  credential = cleanText_(credential);
-  if (!credential) throwBackupRestoreErrorV84_('REAUTH_REQUIRED', '請再次輸入目前的 API 金鑰');
-  try { validateApiKeyV83_(credential); }
-  catch (ignore) { throwBackupRestoreErrorV84_('REAUTH_REQUIRED', '驗證失敗，請重新輸入'); }
-  var token = 'elevated_' + [Utilities.getUuid(), Utilities.getUuid()].join('').replace(/-/g, '');
-  var expiresAt = Date.now() + V84_BACKUP.ELEVATED_TOKEN_TTL_MS;
-  var properties = scriptPropertiesV84_();
-  properties.setProperty(V84_BACKUP.PROPERTIES.ELEVATED_TOKEN_HASH, hashApiKeyV83_(token));
-  properties.setProperty(V84_BACKUP.PROPERTIES.ELEVATED_TOKEN_EXPIRES_AT, String(expiresAt));
-  return { elevatedToken: token, expiresAt: new Date(expiresAt).toISOString(), expiresInSeconds: Math.floor(V84_BACKUP.ELEVATED_TOKEN_TTL_MS / 1000) };
-}
-
-function validateRestoreElevatedTokenV84_(token) {
-  var properties = scriptPropertiesV84_();
-  var expectedHash = cleanText_(properties.getProperty(V84_BACKUP.PROPERTIES.ELEVATED_TOKEN_HASH));
-  var expiresAt = Number(properties.getProperty(V84_BACKUP.PROPERTIES.ELEVATED_TOKEN_EXPIRES_AT));
-  if (!cleanText_(token) || !expectedHash || !isFinite(expiresAt) || expiresAt <= Date.now() || !constantTimeEqualsV83_(hashApiKeyV83_(token), expectedHash)) {
-    throwBackupRestoreErrorV84_('REAUTH_REQUIRED', '高權限操作憑證無效或已逾時，請重新驗證');
-  }
-  return true;
-}
-
 function readRestoreOperationV84_() {
   var raw = cleanText_(scriptPropertiesV84_().getProperty(V84_BACKUP.PROPERTIES.RESTORE_OPERATION));
   if (!raw) return null;
@@ -157,8 +134,7 @@ function createRestoreEmergencyBackupV84_(operation) {
   }
 }
 
-function prepareRestore_(backupId, elevatedToken, options) {
-  validateRestoreElevatedTokenV84_(elevatedToken);
+function prepareRestore_(backupId, options) {
   var normalizedOptions = normalizeRestoreOptionsV84_(options);
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(V84_BACKUP.LOCK_TIMEOUT_MS)) throwBackupRestoreErrorV84_('SYSTEM_BUSY', '已有備份或還原工作正在執行');
@@ -448,8 +424,7 @@ function finalizeRestore_(operationId) {
   }
 }
 
-function rollbackRestore_(operationId, elevatedToken) {
-  validateRestoreElevatedTokenV84_(elevatedToken);
+function rollbackRestore_(operationId) {
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(V84_BACKUP.LOCK_TIMEOUT_MS)) throwBackupRestoreErrorV84_('SYSTEM_BUSY', '還原回復正在處理');
   try {

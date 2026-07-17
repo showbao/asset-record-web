@@ -82,14 +82,14 @@ function makeSpreadsheet(id, overrides = {}) {
     sheets.set(name, makeSheet(name, [targetHeaders, rowFor(targetHeaders, values)]));
   });
   const settings = Object.assign({
-    SYSTEM_VERSION: '8.4.0',
-    SCHEMA_VERSION: '8.4.0',
+    SYSTEM_VERSION: '8.5.0',
+    SCHEMA_VERSION: '8.5.0',
     FILE_ROLE: 'BACKUP',
     BACKUP_ID: 'BKP-1',
     BACKUP_STATUS: 'ARCHIVE',
     BACKUP_SOURCE_ID: 'primary-id',
-    BACKUP_SYSTEM_VERSION: '8.4.0',
-    BACKUP_SCHEMA_VERSION: '8.4.0'
+    BACKUP_SYSTEM_VERSION: '8.5.0',
+    BACKUP_SCHEMA_VERSION: '8.5.0'
   }, overrides.settings || {});
   sheets.set(t.V81.SHEETS.SETTINGS, makeSheet(t.V81.SHEETS.SETTINGS, [
     ['設定項目', '設定值', '說明'],
@@ -102,15 +102,15 @@ function makeSpreadsheet(id, overrides = {}) {
   };
 }
 
-assert.equal(t.V81.VERSION, '8.4.0');
-assert.equal(t.V84_BACKUP.VERSION, '8.4.0');
+assert.equal(t.V81.VERSION, '8.5.0');
+assert.equal(t.V84_BACKUP.VERSION, '8.5.0');
 assert.equal(t.V84_BACKUP.FILE_ROLE_LEGACY_PRIMARY, 'PRODUCTION');
 assert.equal(t.V84_BACKUP.SOURCE_SHEETS.length, 5);
 assert.equal(t.V84_BACKUP_LOG_HEADERS.length, 22);
 assert.deepEqual(Array.from(t.RESTORABLE_SETTING_KEYS), ['BASE_CURRENCY']);
 assert.equal(t.backupReasonLabelV84_('BEFORE_IMPORT'), '匯入資料前');
 assert.equal(t.backupReasonLabelV84_('unknown'), '其他');
-assert.equal(t.backupFileNameV84_('MANUAL', '2026-07-17T02:30:00.000Z'), '資產記錄_備份_20260717_023000_v8.4.0_手動備份');
+assert.equal(t.backupFileNameV84_('MANUAL', '2026-07-17T02:30:00.000Z'), '資產記錄_備份_20260717_023000_v8.5.0_手動備份');
 assert.equal(t.normalizePrimaryFileRoleV84_('PRODUCTION'), 'PRIMARY');
 assert.equal(t.normalizePrimaryFileRoleV84_('PRIMARY'), 'PRIMARY');
 assert.equal(t.normalizePrimaryFileRoleV84_('BACKUP'), 'BACKUP');
@@ -137,9 +137,9 @@ assert.notEqual(t.computeBackupFingerprint_(modifiedBackup), fingerprint);
 backup.getSheetByName(t.V81.SHEETS.SETTINGS).getDataRange = () => ({
   getValues: () => [
     ['設定項目', '設定值', '說明'],
-    ['SYSTEM_VERSION', '8.4.0', ''], ['SCHEMA_VERSION', '8.4.0', ''], ['FILE_ROLE', 'BACKUP', ''],
+    ['SYSTEM_VERSION', '8.5.0', ''], ['SCHEMA_VERSION', '8.5.0', ''], ['FILE_ROLE', 'BACKUP', ''],
     ['BACKUP_ID', 'BKP-1', ''], ['BACKUP_STATUS', 'ARCHIVE', ''], ['BACKUP_SOURCE_ID', 'primary-id', ''],
-    ['BACKUP_SYSTEM_VERSION', '8.4.0', ''], ['BACKUP_SCHEMA_VERSION', '8.4.0', ''], ['BACKUP_FINGERPRINT', fingerprint, '']
+    ['BACKUP_SYSTEM_VERSION', '8.5.0', ''], ['BACKUP_SCHEMA_VERSION', '8.5.0', ''], ['BACKUP_FINGERPRINT', fingerprint, '']
   ]
 });
 const validation = t.validateBackupCandidate_(backup, {
@@ -182,7 +182,7 @@ const apiSource = fs.readFileSync(path.join(gasDir, '84_BackupRestoreApi.gs'), '
 for (const action of ['backup.getOverview', 'backup.create', 'backup.list', 'backup.preview', 'backup.validate', 'backup.registerLegacy']) {
   assert.ok(apiSource.includes(`'${action}'`), `missing API action ${action}`);
 }
-for (const action of ['restore.elevate', 'restore.preview', 'restore.prepare', 'restore.apply', 'restore.finalize', 'restore.status', 'restore.rollback']) {
+for (const action of ['restore.preview', 'restore.prepare', 'restore.apply', 'restore.finalize', 'restore.status', 'restore.rollback']) {
   assert.ok(apiSource.includes(`'${action}'`), `missing API action ${action}`);
 }
 const restoreSource = fs.readFileSync(path.join(gasDir, '82_RestoreService.gs'), 'utf8');
@@ -190,7 +190,7 @@ assert.equal(/deleteSheet\s*\(|insertSheet\s*\(/.test(restoreSource), false, '�
 assert.ok(restoreSource.includes('RESTORE_BATCH_SIZE'));
 const systemSource = fs.readFileSync(path.join(gasDir, '80_System.gs'), 'utf8');
 assert.ok(systemSource.includes('資產記錄備份（唯讀）'));
-assert.ok(systemSource.includes(".addItem('安裝／修復 V8.4.0', 'installV84')"));
+assert.ok(systemSource.includes(".addItem('安裝／修復 V8.5.0', 'installV85')"));
 const manifest = JSON.parse(fs.readFileSync(path.join(gasDir, 'appsscript.json'), 'utf8'));
 assert.ok(manifest.oauthScopes.includes('https://www.googleapis.com/auth/drive'));
 assert.ok(manifest.oauthScopes.includes('https://www.googleapis.com/auth/spreadsheets'));

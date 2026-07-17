@@ -48,8 +48,8 @@ const gasDir = path.resolve(__dirname, '..', 'gas');
 const gasSource = fs.readdirSync(gasDir).filter((name) => name.endsWith('.gs')).sort()
   .map((name) => fs.readFileSync(path.join(gasDir, name), 'utf8')).join('\n') + `
 globalThis.__test = {
-  V81, V83_PROPERTIES, V84_BACKUP,
-  hashApiKeyV83_, settingsMapFromSpreadsheetV84_, createFullBackup_, issueRestoreElevatedTokenV84_,
+  V81, V84_BACKUP,
+  settingsMapFromSpreadsheetV84_, createFullBackup_,
   restorePreviewV84_, prepareRestore_, applyRestore_, finalizeRestore_, rollbackRestore_, restoreStatusV84_,
   validateSnapshots_, runPostRestoreRebuild_, expectedTrendDatesV82_
 };
@@ -125,7 +125,7 @@ const sheets = [
   new FakeSheet(t.V81.SHEETS.CASH_FLOWS, [t.V81.HEADERS.CASH_FLOWS, row(t.V81.HEADERS.CASH_FLOWS, { 流水ID: 'CFX-OLD', 日期: '2026-07-01', 類型: '入金', 金額: 1000, 幣別: 'TWD' })]),
   new FakeSheet(t.V81.SHEETS.TREND, [t.V81.HEADERS.TREND, row(t.V81.HEADERS.TREND, { 取樣日期: '2026-07-10', 取樣級距: '10日', 投資淨資產_TWD: 1000 })]),
   new FakeSheet(t.V81.SHEETS.TREND_DETAIL, [t.V81.HEADERS.TREND_DETAIL, row(t.V81.HEADERS.TREND_DETAIL, { 取樣日期: '2026-07-10', 取樣級距: '10日', 標的代號: '0050', 標的名稱: '元大台灣50', 類別: '台股', 持有數量: 10, 市值_TWD: 1000 })]),
-  new FakeSheet(t.V81.SHEETS.SETTINGS, [['設定項目', '設定值', '說明'], ['SYSTEM_VERSION', '8.4.0', ''], ['SCHEMA_VERSION', '8.4.0', ''], ['FILE_ROLE', 'PRIMARY', ''], ['BASE_CURRENCY', 'TWD', '']]),
+  new FakeSheet(t.V81.SHEETS.SETTINGS, [['設定項目', '設定值', '說明'], ['SYSTEM_VERSION', '8.5.0', ''], ['SCHEMA_VERSION', '8.5.0', ''], ['FILE_ROLE', 'PRIMARY', ''], ['BASE_CURRENCY', 'TWD', '']]),
   new FakeSheet(t.V81.SHEETS.CALCULATION, [t.V81.HEADERS.CALCULATION_REQUIRED, ['stale']]),
   new FakeSheet(t.V81.SHEETS.PERFORMANCE, [t.V81.HEADERS.PERFORMANCE_REQUIRED]),
   new FakeSheet(t.V81.SHEETS.CATEGORY_PERFORMANCE, [t.V81.HEADERS.CATEGORY_REQUIRED, ['stale']]),
@@ -141,9 +141,7 @@ files.set('primary-id', fileObject('primary-id', '資產記錄', (name) => {
   const file = fileObject(id, name); files.set(id, file); return file;
 }));
 triggers = [new FakeTrigger(t.V84_BACKUP.HANDLER_NAME)];
-propertyValues[t.V83_PROPERTIES.API_KEY_HASH] = t.hashApiKeyV83_('current-api-key');
-propertyValues[t.V83_PROPERTIES.API_KEY_LAST4] = '-key';
-propertyValues[t.V83_PROPERTIES.API_KEY_CREATED_AT] = '2026-07-01 09:00:00';
+propertyValues.AUTH_PASSWORD_VERIFIER = 'auth-verifier-sentinel';
 
 const sourceBackup = t.createFullBackup_('MANUAL', '還原整合測試', 'restore-source-request');
 assert.equal(sourceBackup.validation.valid, true);
@@ -151,7 +149,6 @@ assert.equal(copyCount, 1);
 
 activeSpreadsheet.getSheetByName(t.V81.SHEETS.TRANSACTIONS).values.push(row(t.V81.HEADERS.TRANSACTIONS, { 交易ID: 'TX-NEW', 日期: '2026-07-15', 標的代號: '0050', 交易類型: 'buy' }));
 activeSpreadsheet.getSheetByName(t.V81.SHEETS.CASH_FLOWS).values.push(row(t.V81.HEADERS.CASH_FLOWS, { 流水ID: 'CFX-NEW', 日期: '2026-07-15', 類型: '入金', 金額: 500, 幣別: 'TWD' }));
-const elevated = t.issueRestoreElevatedTokenV84_('current-api-key');
 const preview = t.restorePreviewV84_(sourceBackup.backup.backupId);
 assert.equal(preview.current.transactionCount, 2);
 assert.equal(preview.backup.transactionCount, 1);
@@ -164,17 +161,17 @@ activeSpreadsheet.getSheetByName(t.V81.SHEETS.TREND).values.push(dataRow(t.V81.S
 assert.equal(t.validateSnapshots_().valid, false, '重複快照日期必須被偵測');
 activeSpreadsheet.getSheetByName(t.V81.SHEETS.TREND).values.pop();
 
-const prepared = t.prepareRestore_(sourceBackup.backup.backupId, elevated.elevatedToken, {});
+const prepared = t.prepareRestore_(sourceBackup.backup.backupId, {});
 assert.equal(prepared.operation.currentStage, 'PREPARED');
 assert.equal(prepared.emergencyBackup.validationStatus, 'VERIFIED');
 assert.equal(copyCount, 2);
 const interruptedPrepare = JSON.parse(propertyValues[t.V84_BACKUP.PROPERTIES.RESTORE_OPERATION]);
 interruptedPrepare.currentStage = 'PREPARING';
 propertyValues[t.V84_BACKUP.PROPERTIES.RESTORE_OPERATION] = JSON.stringify(interruptedPrepare);
-const resumedPreparing = t.prepareRestore_(sourceBackup.backup.backupId, elevated.elevatedToken, {});
+const resumedPreparing = t.prepareRestore_(sourceBackup.backup.backupId, {});
 assert.equal(resumedPreparing.operation.currentStage, 'PREPARED');
 assert.equal(copyCount, 2, 'PREPARING 中斷續跑必須重用已完成的緊急備份');
-const preparedAgain = t.prepareRestore_(sourceBackup.backup.backupId, elevated.elevatedToken, {});
+const preparedAgain = t.prepareRestore_(sourceBackup.backup.backupId, {});
 assert.equal(preparedAgain.resumed, true);
 assert.equal(copyCount, 2, 'Prepare 續跑不得重複建立緊急備份');
 
@@ -187,7 +184,7 @@ assert.equal(activeSpreadsheet.getSheetByName(t.V81.SHEETS.ASSETS).formats[0].fo
 assert.equal(dataRow(t.V81.SHEETS.CASH_FLOWS)[0], 'CFX-OLD');
 assert.equal(activeSpreadsheet.getSheetByName(t.V81.SHEETS.CALCULATION).getLastRow(), 1);
 assert.equal(activeSpreadsheet.getSheetByName('備份紀錄').getLastRow(), 3, '備份紀錄不得被來源備份覆蓋');
-assert.equal(propertyValues[t.V83_PROPERTIES.API_KEY_HASH], t.hashApiKeyV83_('current-api-key'));
+assert.equal(propertyValues.AUTH_PASSWORD_VERIFIER, 'auth-verifier-sentinel');
 
 context.refreshPricesInternal_ = () => ({ updated: 1, failed: 0 });
 context.refreshExchangeRatesInternal_ = () => ({ updated: 2, failed: 0 });
@@ -221,7 +218,7 @@ context.refreshExchangeRatesInternal_ = () => ({ updated: 2, failed: 0 });
 
 // 第二次還原故意破壞正式表頭，驗證 ROLLBACK_REQUIRED 與同一服務回復緊急備份。
 activeSpreadsheet.getSheetByName(t.V81.SHEETS.TRANSACTIONS).values[1][0] = 'TX-PRE-ROLLBACK';
-const secondPrepared = t.prepareRestore_(sourceBackup.backup.backupId, elevated.elevatedToken, {});
+const secondPrepared = t.prepareRestore_(sourceBackup.backup.backupId, {});
 assert.equal(copyCount, 3);
 const transactionSheet = activeSpreadsheet.getSheetByName(t.V81.SHEETS.TRANSACTIONS);
 transactionSheet.values[0][0] = 'BROKEN_ID_HEADER';
@@ -229,7 +226,7 @@ assert.throws(() => t.applyRestore_(secondPrepared.operation.operationId), (erro
 assert.equal(propertyValues.SYSTEM_MODE, 'RESTORE_FAILED');
 assert.equal(t.restoreStatusV84_().rollbackRequired, true);
 transactionSheet.values[0][0] = '交易ID';
-const rollbackPrepared = t.rollbackRestore_(secondPrepared.operation.operationId, elevated.elevatedToken);
+const rollbackPrepared = t.rollbackRestore_(secondPrepared.operation.operationId);
 assert.equal(rollbackPrepared.operation.rollbackMode, true);
 assert.equal(copyCount, 3, '回復不得再建立另一份緊急備份');
 const rollbackApplied = t.applyRestore_(secondPrepared.operation.operationId);
@@ -240,6 +237,6 @@ assert.equal(rollbackFinalized.operation.status, 'SUCCESS');
 assert.equal(rollbackFinalized.operation.rollbackMode, true);
 assert.equal(propertyValues.SYSTEM_MODE, 'NORMAL');
 assert.equal(activeSpreadsheet.getId(), 'primary-id');
-assert.equal(propertyValues[t.V83_PROPERTIES.API_KEY_HASH], t.hashApiKeyV83_('current-api-key'));
+assert.equal(propertyValues.AUTH_PASSWORD_VERIFIER, 'auth-verifier-sentinel');
 
 console.log(JSON.stringify({ ok: true, assertions: 47, copies: copyCount, finalOperation: rollbackFinalized.operation.operationId }, null, 2));

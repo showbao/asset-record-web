@@ -49,13 +49,13 @@ input:focus, select:focus, textarea:focus { outline: 3px solid rgba(45, 128, 98,
 .view-tabs { display: flex; gap: .35rem; padding: 1rem clamp(1rem, 4vw, 3rem) 0; overflow-x: auto; }
 .view-tabs button { flex: 0 0 auto; background: transparent; }
 .view-tabs button.active { color: #fff; background: var(--ink); border-color: var(--ink); }
-.content { width: min(1500px, 100%); margin: auto; padding: 1.2rem clamp(1rem, 4vw, 3rem) 4rem; }
+.content { width: min(1180px, 100%); margin: auto; padding: 1.2rem clamp(1rem, 4vw, 3rem) 4rem; }
 .view { animation: enter .18s ease-out; }
 @keyframes enter { from { opacity: 0; transform: translateY(5px); } }
 .section-head { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin: 1rem 0 1.2rem; }
 .section-head h1 { margin: .25rem 0 0; font-family: Georgia, "Noto Serif TC", serif; font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -.035em; }
 
-.metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; }
+.metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; }
 .metric-card { min-height: 9rem; display: flex; flex-direction: column; justify-content: space-between; padding: 1.1rem; border: 1px solid var(--line); border-radius: 1.1rem; background: var(--panel); box-shadow: 0 8px 28px rgba(16, 37, 29, .04); }
 .metric-card .label { color: var(--muted); font-size: .82rem; }
 .metric-card strong { font-family: Georgia, "Noto Serif TC", serif; font-size: clamp(1.35rem, 3vw, 2.2rem); }
@@ -108,20 +108,62 @@ dialog::backdrop { background: rgba(9, 25, 18, .48); backdrop-filter: blur(3px);
 .checkbox-field input { width: auto; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: .6rem; }
 
+.password-control { display: grid; grid-template-columns: 1fr auto; gap: .55rem; }
+.password-control button { border-radius: .75rem; }
+.remember-check { display: flex; align-items: center; gap: .55rem; }
+.remember-check input, .inline-check input { width: auto; }
+.login-help { margin-top: 1.4rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .82rem; line-height: 1.6; }
+.trend-stack { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; margin-top: .8rem; }
+.overview-lower { grid-template-columns: 1fr 1fr; }
+.alert-list { display: grid; gap: .65rem; margin-top: 1rem; }
+.alert-item { padding: .8rem; border-radius: .8rem; border: 1px solid #dec28d; background: #fff4d9; color: #6a4a14; }
+.alert-item.success { border-color: #b9d8c8; background: #edf7f1; color: var(--green); }
+.system-status-bar { margin-top: .8rem; padding: .8rem 1rem; border: 1px solid var(--line); border-radius: .9rem; background: #eef4ef; color: #38584c; font-size: .85rem; }
+.list-panel, .system-section { margin-top: .8rem; }
+.status-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; margin-top: 1rem; }
+.status-item { display: grid; gap: .3rem; padding: .8rem; border: 1px solid var(--line); border-radius: .8rem; background: #faf9f4; }
+.status-item span { color: var(--muted); font-size: .75rem; }
+.section-head.compact { align-items: center; margin-top: 0; }
+.section-head.compact h2 { margin: 0; }
+.system-section details { margin-top: 1rem; border-top: 1px solid var(--line); padding-top: .8rem; }
+.system-section summary { cursor: pointer; color: var(--muted); font-weight: 700; }
+.system-section pre { max-height: 22rem; overflow: auto; padding: .8rem; border-radius: .8rem; background: #f3f2ed; font-size: .76rem; white-space: pre-wrap; }
+.danger-button { color: #fff; border-color: var(--danger); background: var(--danger); }
+.field-error { min-height: 1em; color: var(--danger); font-size: .72rem; font-weight: 500; }
+.transaction-estimate { margin: 0 0 1rem; padding: .75rem; border-radius: .75rem; background: var(--mint); color: var(--green); font-weight: 700; }
+.editor-drawer.transaction-drawer { width: min(34rem, 100vw); height: 100vh; max-height: 100vh; margin: 0 0 0 auto; border-radius: 1.2rem 0 0 1.2rem; }
+.editor-drawer.transaction-drawer .drawer-card { height: 100%; display: flex; flex-direction: column; }
+.editor-drawer.transaction-drawer .form-grid { flex: 1; overflow: auto; grid-template-columns: 1fr; padding-right: .25rem; }
+.editor-drawer.transaction-drawer .form-grid .full { grid-column: auto; }
+
 @media (max-width: 1050px) {
   .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .panel-grid { grid-template-columns: 1fr; }
   .filters, .filters.wide { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .job-grid { grid-template-columns: 1fr; }
+  .trend-stack { grid-template-columns: 1fr; }
+  .status-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 650px) {
   .topbar { position: static; }.status-pill { display: none; }
+  .view-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .2rem; padding: .8rem .5rem 0; overflow-x: visible; }
+  .view-tabs button { min-width: 0; padding: .55rem .2rem; font-size: .8rem; white-space: nowrap; }
   .content { padding-top: .5rem; }.section-head { align-items: center; }
   .section-head h1 { font-size: 2.15rem; }
-  .metric-grid { grid-template-columns: 1fr; }
+  .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .metric-card { min-height: 7.5rem; }
   .filters, .filters.wide { grid-template-columns: 1fr 1fr; }
   .filters > :first-child { grid-column: 1 / -1; }
   .form-grid { grid-template-columns: 1fr; }.form-grid .full { grid-column: auto; }
   .maintenance-actions { flex-direction: column; }
+  .status-grid { grid-template-columns: 1fr 1fr; }
+  .responsive-table { border: 0; background: transparent; overflow: visible; }
+  .responsive-table table, .responsive-table tbody { display: block; }
+  .responsive-table thead { display: none; }
+  .responsive-table tr { display: block; margin-bottom: .75rem; padding: .6rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--panel); }
+  .responsive-table td { display: grid; grid-template-columns: minmax(6rem, .75fr) 1fr; gap: .8rem; padding: .5rem; border: 0; white-space: normal; text-align: right; }
+  .responsive-table td::before { content: attr(data-label); color: var(--muted); text-align: left; font-size: .75rem; }
+  .responsive-table td.numeric { text-align: right; }
+  .row-actions { justify-content: flex-end; }
+  .editor-drawer.transaction-drawer { width: 100vw; border-radius: 0; }
 }

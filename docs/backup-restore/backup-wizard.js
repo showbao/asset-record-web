@@ -33,7 +33,7 @@
   function value(value) { return value == null || value === '' ? '—' : String(value).replace('T', ' ').replace('+08:00', ''); }
 
   function setHeader(title) {
-    document.getElementById('backupWizardStep').textContent = '步驟 ' + state.step + ' / 5';
+    document.getElementById('backupWizardStep').textContent = '步驟 ' + state.step + ' / 3';
     document.getElementById('backupWizardTitle').textContent = title;
     errorBox.textContent = '';
   }
@@ -99,7 +99,7 @@
   }
 
   async function execute() {
-    state.step = 4; setHeader('執行備份'); body.replaceChildren(progressList(2, false)); actions.replaceChildren();
+    state.step = 3; setHeader('建立並驗證'); body.replaceChildren(progressList(2, false)); actions.replaceChildren();
     try {
       var response = await root.AssetRecordBackupApi.create(state.reason, state.note);
       state.result = response.data;
@@ -113,7 +113,7 @@
   }
 
   function renderStepFive() {
-    state.step = 5; setHeader('備份成功'); body.replaceChildren();
+    state.step = 3; setHeader('建立並驗證完成'); body.replaceChildren();
     var backup = state.result.backup;
     var grid = node('dl', 'wizard-summary');
     [

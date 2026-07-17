@@ -1,71 +1,70 @@
-# 資產記錄 Web API v8.4.0
+# 資產記錄 Web API v8.5.0
 
 ## 傳輸格式
 
-資料操作一律使用 `POST`，Content-Type 為 `text/plain;charset=UTF-8`，本文最大 100 KB。
+資料操作一律使用 `POST` 與 `text/plain;charset=UTF-8`，本文上限 100 KB。除 `auth.status`、`auth.begin`、`auth.login` 外，所有 action 都必須帶有效 Session Token。
 
 ```json
 {
-  "action": "listTransactions",
-  "apiKey": "由 Sheet 選單一次性取得",
+  "action": "transactions.list",
+  "sessionToken": "RAW_SESSION_TOKEN",
+  "elevatedToken": "只有高風險操作才傳",
   "requestId": "瀏覽器 UUID",
   "params": {},
   "payload": {}
 }
 ```
 
-回應固定包含 `success`、`code`、`message`、`data`、`version`、`timestamp`、`requestId`、`warnings`、`error`。業務成功或失敗依 `success` 與 `code` 判斷，不依 HTTP 狀態碼判斷。成功時 `error` 為 `null`；失敗時包含穩定錯誤碼與安全訊息。日期為 `YYYY-MM-DD`，時間包含 `+08:00`。
+回應固定包含 `success`、`code`、`message`、`data`、`version`、`timestamp`、`requestId`、`warnings`、`error`。`GET` 只回傳服務版本與伺服器時間。
 
-績效 API 的數值欄位只回傳有限 `number` 或 `null`，日期欄位只回傳 ISO 字串或 `null`。`Date` 不得轉為時間戳記型績效數值；標的績效僅保留單一 `xirr`，對應 Sheet 的「XIRR（年化）」欄。
+## 登入
 
-`GET` 只回傳版本、服務狀態與伺服器時間，不回傳資產資料。
+1. `auth.begin` 以帳號取得 PBKDF2 演算法、Salt、迭代次數與密碼版本；不存在的帳號也回傳同型假參數。
+2. 前端以 Web Crypto PBKDF2／SHA-256 派生 256-bit 值，並產生 256-bit Session Token Candidate。
+3. `auth.login` 傳送帳號、短暫衍生值、Candidate 與 `rememberMe`。GAS 只保存加上 Pepper 的驗證值與 Session Token HMAC。
+4. `auth.getSession` 在頁面恢復時向伺服器驗證；`auth.logout` 撤銷目前 Session。
+5. `auth.elevate` 再次驗證原始密碼，簽發 10 分鐘且限 scope 的 Elevated Token。
+6. `auth.logoutAll`、`auth.changePassword` 都需要 Elevated Token；成功後所有 Session 失效。
+
+Session 未勾保持登入時最長 12 小時，勾選後最長 7 天；伺服器最多保存 5 個有效 Session。連續五次驗證失敗會鎖定 15 分鐘，後續最高 60 分鐘。
 
 ## Actions
 
 | 類別 | Actions |
 | --- | --- |
-| 標的 | `listAssets`, `getAsset`, `createAsset`, `updateAsset`, `disableAsset` |
-| 交易 | `listTransactions`, `getTransaction`, `createTransaction`, `updateTransaction`, `deleteTransaction`, `restoreTransaction` |
-| 外部流水 | `listExternalCashFlows`, `getExternalCashFlow`, `createExternalCashFlow`, `updateExternalCashFlow`, `deleteExternalCashFlow`, `restoreExternalCashFlow` |
-| 輸出 | `getDashboardSummary`, `getPerformanceList`, `getTrendData` |
-| 工作 | `requestRebuild`, `requestMarketRefresh`, `getJobStatus` |
+| 公開登入 | `auth.status`, `auth.begin`, `auth.login` |
+| Session | `auth.getSession`, `auth.logout`, `auth.elevate`, `auth.logoutAll`, `auth.changePassword` |
+| 首頁／系統 | `dashboard.getOverview`, `system.getStatus` |
+| 標的 | `instruments.list`, `listAssets`, `getAsset`, `createAsset`, `updateAsset`, `disableAsset` |
+| 交易 | `transactions.list`, `transactions.create`, `transactions.update`, `transactions.delete`, `transactions.restore` |
+| 外部流水 | `cashflows.list`, `cashflows.create`, `cashflows.update`, `cashflows.delete`, `cashflows.restore` |
+| 維護 | `system.requestMarketRefresh`, `snapshots.rebuildAll` |
 | 備份 | `backup.getOverview`, `backup.create`, `backup.list`, `backup.preview`, `backup.validate`, `backup.registerLegacy` |
-| 還原 | `restore.elevate`, `restore.preview`, `restore.prepare`, `restore.apply`, `restore.finalize`, `restore.status`, `restore.rollback` |
+| 還原 | `restore.preview`, `restore.prepare`, `restore.apply`, `restore.finalize`, `restore.status`, `restore.rollback` |
 
-### 備份 payload／params
+既有 v8.3 action 名稱在遷移期維持相容，但前端只使用上述 v8.5 名稱。`snapshots.rebuildAll`、還原、變更密碼及登出所有裝置都需符合 action scope 的 Elevated Token。
 
-- `backup.create` payload：`reason`, `note`。`note` 最多 200 字。
-- `reason`：`MANUAL`, `BEFORE_BULK_EDIT`, `BEFORE_IMPORT`, `BEFORE_SNAPSHOT_REBUILD`, `BEFORE_UPGRADE`, `OTHER`。
-- `backup.list` params：`includeInvalid`，預設 `false`。
+## 分頁與效能
+
+- 交易與資金流水前端固定每頁 50 筆；標的每頁 40 筆。
+- 列表回傳 `items`、`page`、`pageSize`、`total`、`totalPages`、`hasNext`、`meta`。
+- `dashboard.getOverview` 一次回傳 `summary`、`longTermTrend`、`sixMonthTrend`、`allocation`、`alerts`、`systemStatus`。
+- `dashboard.getOverview` 可用 `params.summaryOnly=true` 做寫入後局部刷新。
+- 長期與六個月趨勢由 GAS 一次讀取後最多各取樣 180 點。
+
+## 備份與還原
+
+- `backup.create` payload：`reason`, `note`。`reason` 允許 `MANUAL`, `BEFORE_BULK_EDIT`, `BEFORE_IMPORT`, `BEFORE_SNAPSHOT_REBUILD`, `BEFORE_UPGRADE`, `OTHER`。
 - `backup.preview`、`backup.validate` params：`backupId`。
-- `backup.registerLegacy` payload：`url`，接受 Google Sheet 網址；舊檔只登記為 `LEGACY_UNVERIFIED`，不會自動升級成 `VERIFIED`。
+- `restore.preview` params：`backupId`。
+- `restore.prepare` payload：`backupId`, `options`；Elevated Token 放在 request 頂層。
+- `restore.apply`、`restore.finalize`、`restore.rollback` payload：`operationId`；Elevated Token 放在 request 頂層。
+- `restore.status` 可選 params：`operationId`。
 
-### 還原 payload／params
+還原不覆蓋 AUTH Script Properties、Session、GAS 程式、Deployment 或觸發器。完成 `restore.finalize` 後，該 Elevated Token 立即撤銷。
 
-- `restore.elevate` payload：`credential`，必須是目前有效 API 金鑰；成功回傳 10 分鐘有效的 `elevatedToken`。錯誤只回傳 `REAUTH_REQUIRED`，不洩露原因。
-- `restore.preview` params：`backupId`，回傳目前與備份的交易、標的、外部流水、快照及最後日期比較。
-- `restore.prepare` payload：`backupId`, `elevatedToken`, `options`；驗證來源、鎖定系統並建立已驗證緊急備份。
-- `restore.apply` payload：`operationId`；依欄名分批寫回來源資料、白名單設定並清除衍生輸出。
-- `restore.finalize` payload：`operationId`；更新行情與匯率、重算、處理快照、稽核觸發器及完整驗證。
-- `restore.status` 可選 params：`operationId`；回傳系統模式、目前階段、是否可續跑及是否必須回復。
-- `restore.rollback` payload：`operationId`, `elevatedToken`；將同一工作切換到緊急備份，之後仍依序呼叫 Apply 與 Finalize。
+## 安全錯誤碼
 
-`options` 支援 `restoreBusinessSettings`, `restoreSnapshots`, `refreshPrices`, `refreshFx`, `fillMissingSnapshots`, `fullSnapshotRebuild`, `confirmLegacy`。除 `fullSnapshotRebuild` 與 `confirmLegacy` 外預設皆為 `true`。來源交易、標的、外部流水與衍生重算為固定流程，不能略過。
+常用登入錯誤碼：`AUTH_REQUIRED`, `AUTH_NOT_CONFIGURED`, `AUTH_INVALID_CREDENTIALS`, `AUTH_LOCKED`, `AUTH_SESSION_EXPIRED`, `AUTH_SESSION_REVOKED`, `AUTH_ELEVATION_REQUIRED`, `AUTH_ELEVATION_EXPIRED`, `AUTH_LEGACY_DISABLED`。
 
-還原狀態為 `SUCCESS`, `SUCCESS_WITH_WARNINGS`, `FAILED`, `ROLLBACK_REQUIRED`。在 `RESTORE_RUNNING` 或 `RESTORE_FAILED` 時，來源寫入與一般維護 action 會回傳 `SYSTEM_BUSY`；`restore.status`、續跑及回復仍可使用。
-
-列表 action 使用 `page`（預設 1）與 `pageSize`（預設 25、上限 100），並回傳 `items`、`page`、`pageSize`、`total`、`totalPages`、`hasNext`、`meta`。
-
-### 寫入 payload
-
-- 標的：`code`, `name`, `type`, `tradeCurrency`, `navCurrency`, `fundId`, `enabled`, `updatePrice`, `priceSource`, `note`, `fundCategory`
-- 交易：`date`, `assetCode`, `type`, `bank`, `quantity`, `price`, `fee`, `actualAmount`, `splitBefore`, `splitAfter`, `note`, `manualAmount`
-- 外部流水：`date`, `type`, `amount`, `currency`, `fxRate`, `note`
-
-修改、刪除與還原的 ID 放在 `params.code` 或 `params.id`。交易的成本、損益與非人工實際入出金額由 GAS 計算。
-
-## 穩定錯誤碼
-
-`AUTH_REQUIRED`, `AUTH_INVALID`, `REAUTH_REQUIRED`, `INVALID_JSON`, `INVALID_REQUEST`, `ACTION_NOT_FOUND`, `VALIDATION_ERROR`, `NOT_FOUND`, `CONFLICT`, `OVERSELL`, `LOCK_TIMEOUT`, `PAYLOAD_TOO_LARGE`, `SYSTEM_BUSY`, `PRIMARY_FILE_NOT_FOUND`, `NOT_PRIMARY_FILE`, `BACKUP_FOLDER_ERROR`, `BACKUP_COPY_FAILED`, `BACKUP_VALIDATION_FAILED`, `BACKUP_NOT_FOUND`, `BACKUP_FILE_MISSING`, `BACKUP_MODIFIED`, `BACKUP_VERSION_UNSUPPORTED`, `BACKUP_REQUIRED_SHEET_MISSING`, `BACKUP_REQUIRED_HEADER_MISSING`, `EMERGENCY_BACKUP_FAILED`, `RESTORE_ALREADY_RUNNING`, `POST_RESTORE_VALIDATION_FAILED`, `TRIGGER_REPAIR_FAILED`, `ROLLBACK_REQUIRED`, `INTERNAL_ERROR`。
-
-重複排隊回傳成功碼 `ALREADY_PENDING`；重複停用、刪除或還原回傳冪等成功碼，不改寫時間。
+其餘業務錯誤沿用穩定碼：`INVALID_JSON`, `INVALID_REQUEST`, `ACTION_NOT_FOUND`, `VALIDATION_ERROR`, `NOT_FOUND`, `CONFLICT`, `OVERSELL`, `PAYLOAD_TOO_LARGE`, `SYSTEM_BUSY`, `BACKUP_VALIDATION_FAILED`, `ROLLBACK_REQUIRED`, `INTERNAL_ERROR` 等。

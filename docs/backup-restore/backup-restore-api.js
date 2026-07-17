@@ -37,23 +37,24 @@
     return api().call('restore.preview', { params: { backupId: backupId }, dedupeKey: 'restore-preview:' + backupId });
   }
 
-  function elevate(credential) {
-    return api().call('restore.elevate', { payload: { credential: credential }, dedupeKey: 'restore-elevate' });
+  function elevate(username, credential) {
+    return root.AssetRecordAuthApi.elevate(username, credential, 'restore');
   }
 
   function prepareRestore(backupId, elevatedToken, options) {
     return api().call('restore.prepare', {
-      payload: { backupId: backupId, elevatedToken: elevatedToken, options: options || {} },
+      elevatedToken: elevatedToken,
+      payload: { backupId: backupId, options: options || {} },
       dedupeKey: 'restore-prepare'
     });
   }
 
-  function applyRestore(operationId) {
-    return api().call('restore.apply', { payload: { operationId: operationId }, dedupeKey: 'restore-apply' });
+  function applyRestore(operationId, elevatedToken) {
+    return api().call('restore.apply', { elevatedToken: elevatedToken, payload: { operationId: operationId }, dedupeKey: 'restore-apply' });
   }
 
-  function finalizeRestore(operationId) {
-    return api().call('restore.finalize', { payload: { operationId: operationId }, dedupeKey: 'restore-finalize' });
+  function finalizeRestore(operationId, elevatedToken) {
+    return api().call('restore.finalize', { elevatedToken: elevatedToken, payload: { operationId: operationId }, dedupeKey: 'restore-finalize' });
   }
 
   function restoreStatus(operationId) {
@@ -62,7 +63,8 @@
 
   function rollbackRestore(operationId, elevatedToken) {
     return api().call('restore.rollback', {
-      payload: { operationId: operationId, elevatedToken: elevatedToken },
+      elevatedToken: elevatedToken,
+      payload: { operationId: operationId },
       dedupeKey: 'restore-rollback'
     });
   }

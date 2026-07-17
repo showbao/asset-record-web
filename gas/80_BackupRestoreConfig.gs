@@ -1,6 +1,6 @@
 var V84_BACKUP = Object.freeze({
-  VERSION: '8.4.0',
-  SCHEMA_VERSION: '8.4.0',
+  VERSION: '8.5.0',
+  SCHEMA_VERSION: '8.5.0',
   FOLDER_NAME: '資產記錄備份',
   LOG_SHEET_NAME: '備份紀錄',
   FILE_ROLE_PRIMARY: 'PRIMARY',

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>資產記錄 v8.4.0</title>
+  <title>資產記錄 v8.5.0</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="backup-restore/backup-restore.css">
 </head>
@@ -13,193 +13,145 @@
 
   <main id="loginView" class="login-shell">
     <section class="login-card" aria-labelledby="loginTitle">
-      <div class="eyebrow">ASSET RECORD · V8.4.0</div>
-      <h1 id="loginTitle">把投資全貌，留在自己手上。</h1>
-      <p>金鑰只保存在這個分頁的 sessionStorage，關閉分頁或登出後即清除。</p>
+      <div class="eyebrow">ASSET RECORD · V8.5.0</div>
+      <h1 id="loginTitle">資產記錄</h1>
+      <p>使用你在 Google Sheet 設定的單一帳號與原始密碼登入。</p>
       <form id="loginForm" class="stack">
-        <label>API 金鑰
-          <input id="apiKey" name="apiKey" type="password" autocomplete="off" required placeholder="arv83_…">
+        <label>帳號<input id="loginUsername" name="username" autocomplete="username" required minlength="3" maxlength="40"></label>
+        <label>密碼
+          <span class="password-control"><input id="loginPassword" name="password" type="password" autocomplete="current-password" required><button id="toggleLoginPassword" type="button" class="ghost">顯示</button></span>
         </label>
-        <button class="primary" type="submit">開啟資產記錄</button>
+        <label class="inline-check remember-check"><input id="rememberMe" type="checkbox"> 在此私人裝置保持登入 7 天</label>
+        <button id="loginSubmit" class="primary" type="submit">登入</button>
         <p id="loginError" class="form-error" role="alert"></p>
       </form>
+      <div class="login-help"><strong>忘記密碼？</strong><br>請至 Google Sheet 選擇：<br>資產記錄 V8.5.0 → 設定／重設網頁登入帳密</div>
     </section>
   </main>
 
   <div id="appView" class="app-shell" hidden>
     <header class="topbar">
-      <div>
-        <div class="eyebrow">ASSET RECORD</div>
-        <strong>資產記錄</strong>
-      </div>
-      <div class="top-actions">
-        <span id="syncState" class="status-pill">準備就緒</span>
-        <button id="logoutButton" class="ghost" type="button">登出</button>
-      </div>
+      <div><div class="eyebrow">ASSET RECORD</div><strong>資產記錄</strong></div>
+      <div class="top-actions"><span id="syncState" class="status-pill">準備就緒</span><button id="logoutButton" class="ghost" type="button">登出</button></div>
     </header>
-
-    <div id="recalcWarning" class="warning" role="status" hidden>資料已變更，等待每日 07:30 排程重算。現在仍可查閱既有資料。</div>
+    <div id="recalcWarning" class="warning" role="status" hidden>資料已變更，等待集中重算；目前仍可查閱既有資料。</div>
     <div id="globalError" class="global-error" role="alert" hidden></div>
 
     <nav class="view-tabs" aria-label="主要功能">
       <button type="button" data-view="overview" class="active">總覽</button>
-      <button type="button" data-view="performance">標的績效</button>
-      <button type="button" data-view="assets">標的</button>
       <button type="button" data-view="transactions">交易</button>
-      <button type="button" data-view="cashflows">外部出入金</button>
-      <button type="button" data-view="jobs">工作狀態</button>
-      <button type="button" data-view="backup">備份與還原</button>
+      <button type="button" data-view="instruments">投資標的</button>
+      <button type="button" data-view="cashflows">資金流水</button>
+      <button type="button" data-view="system">系統</button>
     </nav>
 
     <main class="content">
       <section id="view-overview" class="view active-view" aria-labelledby="overviewTitle">
-        <div class="section-head">
-          <div><p class="eyebrow">PORTFOLIO</p><h1 id="overviewTitle">投資總覽</h1></div>
-          <button type="button" class="ghost refresh-view">更新畫面</button>
+        <div class="section-head"><div><p class="eyebrow">PORTFOLIO</p><h1 id="overviewTitle">投資總覽</h1></div><button type="button" class="ghost refresh-view">更新畫面</button></div>
+        <div id="metricCards" class="metric-grid six-cards"></div>
+        <div class="trend-stack">
+          <article class="panel trend-panel"><div class="panel-title"><h2>投資以來</h2><span>淨資產／外部淨投入</span></div><svg id="longTermTrendChart" viewBox="0 0 760 300" role="img" aria-label="投資以來資產趨勢"></svg></article>
+          <article class="panel trend-panel"><div class="panel-title"><h2>最近六個月</h2><span>淨資產／外部淨投入</span></div><svg id="sixMonthTrendChart" viewBox="0 0 760 300" role="img" aria-label="最近六個月資產趨勢"></svg></article>
         </div>
-        <div id="metricCards" class="metric-grid"></div>
-        <div class="panel-grid">
-          <article class="panel">
-            <div class="panel-title"><h2>資產配置</h2><span>依最新完整資料</span></div>
-            <div id="allocationList" class="allocation"></div>
-          </article>
-          <article class="panel trend-panel">
-            <div class="panel-title"><h2>近六個月趨勢</h2><span>淨資產／外部淨投入</span></div>
-            <svg id="trendChart" viewBox="0 0 760 300" role="img" aria-label="淨資產與外部淨投入趨勢"></svg>
-          </article>
+        <div class="panel-grid overview-lower">
+          <article class="panel"><div class="panel-title"><h2>資產配置</h2><span>依最新完整資料</span></div><div id="allocationList" class="allocation"></div></article>
+          <article class="panel"><div class="panel-title"><h2>需要留意</h2><span>最多三項</span></div><div id="alertList" class="alert-list"></div></article>
         </div>
-        <p id="overviewMeta" class="muted"></p>
-      </section>
-
-      <section id="view-performance" class="view" aria-labelledby="performanceTitle" hidden>
-        <div class="section-head"><div><p class="eyebrow">PERFORMANCE</p><h1 id="performanceTitle">標的績效</h1></div><button type="button" class="ghost refresh-view">更新</button></div>
-        <form id="performanceFilters" class="filters">
-          <input name="query" type="search" placeholder="搜尋代號或名稱">
-          <input name="category" placeholder="類別">
-          <select name="status"><option value="all">全部狀態</option><option value="held">持有中</option><option value="closed">已出清</option></select>
-          <button type="submit">套用</button>
-        </form>
-        <div id="performanceTable" class="table-wrap"></div><div id="performancePager" class="pager"></div>
-      </section>
-
-      <section id="view-assets" class="view" aria-labelledby="assetsTitle" hidden>
-        <div class="section-head"><div><p class="eyebrow">MASTER DATA</p><h1 id="assetsTitle">投資標的</h1></div><button id="newAsset" class="primary" type="button">新增標的</button></div>
-        <form id="assetFilters" class="filters">
-          <input name="query" type="search" placeholder="搜尋代號、名稱或備註">
-          <select name="type"><option value="">全部類型</option><option value="tw_stock">台股</option><option value="us_stock">美股</option><option value="fund">基金</option></select>
-          <select name="enabled"><option value="all">全部</option><option value="true">啟用</option><option value="false">停用</option></select>
-          <button type="submit">套用</button>
-        </form>
-        <div id="assetTable" class="table-wrap"></div><div id="assetPager" class="pager"></div>
+        <div id="systemStatusBar" class="system-status-bar" role="status"></div>
       </section>
 
       <section id="view-transactions" class="view" aria-labelledby="transactionsTitle" hidden>
-        <div class="section-head"><div><p class="eyebrow">LEDGER</p><h1 id="transactionsTitle">投資交易</h1></div><button id="newTransaction" class="primary" type="button">新增交易</button></div>
+        <div class="section-head"><div><p class="eyebrow">LEDGER</p><h1 id="transactionsTitle">交易</h1></div><button id="newTransaction" class="primary" type="button">新增交易</button></div>
         <form id="transactionFilters" class="filters wide">
-          <input name="query" type="search" placeholder="搜尋 ID、標的、銀行或備註">
+          <input name="query" type="search" placeholder="搜尋標的代號或名稱">
           <input name="assetCode" placeholder="標的代號">
           <select name="type"><option value="">全部類型</option><option value="buy">買進</option><option value="sell">賣出</option><option value="dividend">現金股利</option><option value="stock_dividend">股票股利</option><option value="split">分割</option><option value="reverse_split">反向分割</option><option value="adjustment">現金調整</option></select>
           <input name="dateFrom" type="date" aria-label="起始日期"><input name="dateTo" type="date" aria-label="結束日期">
           <select name="deleted"><option value="active">有效資料</option><option value="deleted">已刪除</option><option value="all">全部</option></select>
           <button type="submit">套用</button>
         </form>
-        <div id="transactionTable" class="table-wrap"></div><div id="transactionPager" class="pager"></div>
+        <div id="transactionTable" class="table-wrap responsive-table"></div><div id="transactionPager" class="pager"></div>
+      </section>
+
+      <section id="view-instruments" class="view" aria-labelledby="instrumentsTitle" hidden>
+        <div class="section-head"><div><p class="eyebrow">INSTRUMENTS</p><h1 id="instrumentsTitle">投資標的</h1></div><button id="newAsset" class="primary" type="button">新增標的</button></div>
+        <form id="instrumentFilters" class="filters">
+          <input name="query" type="search" placeholder="搜尋代號或名稱">
+          <select name="type"><option value="">全部類型</option><option value="tw_stock">台股</option><option value="us_stock">美股</option><option value="fund">基金</option></select>
+          <select name="status"><option value="all">全部狀態</option><option value="held">持有中</option><option value="closed">已清倉</option><option value="price_error">價格更新異常</option></select>
+          <button type="submit">套用</button>
+        </form>
+        <article class="panel list-panel"><div class="panel-title"><h2>目前持倉與標的績效</h2><span>目前價格、報酬率與 XIRR</span></div><div id="performanceTable" class="table-wrap responsive-table"></div><div id="performancePager" class="pager"></div></article>
+        <article class="panel list-panel"><div class="panel-title"><h2>標的設定</h2><span>價格／淨值更新狀態</span></div><div id="assetTable" class="table-wrap responsive-table"></div><div id="assetPager" class="pager"></div></article>
       </section>
 
       <section id="view-cashflows" class="view" aria-labelledby="cashflowsTitle" hidden>
-        <div class="section-head"><div><p class="eyebrow">CASH FLOW</p><h1 id="cashflowsTitle">外部出入金</h1></div><button id="newCashFlow" class="primary" type="button">新增流水</button></div>
+        <div class="section-head"><div><p class="eyebrow">CASH FLOW</p><h1 id="cashflowsTitle">資金流水</h1></div><button id="newCashFlow" class="primary" type="button">新增流水</button></div>
         <form id="cashFlowFilters" class="filters wide">
-          <input name="query" type="search" placeholder="搜尋 ID 或備註">
+          <input name="query" type="search" placeholder="搜尋備註">
           <select name="type"><option value="">全部類型</option><option value="入金">入金</option><option value="出金">出金</option></select>
           <select name="currency"><option value="">全部幣別</option><option>TWD</option><option>USD</option><option>JPY</option><option>EUR</option><option>GBP</option><option>CNY</option><option>HKD</option></select>
           <input name="dateFrom" type="date" aria-label="起始日期"><input name="dateTo" type="date" aria-label="結束日期">
           <select name="deleted"><option value="active">有效資料</option><option value="deleted">已刪除</option><option value="all">全部</option></select>
           <button type="submit">套用</button>
         </form>
-        <div id="cashFlowTable" class="table-wrap"></div><div id="cashFlowPager" class="pager"></div>
+        <div id="cashFlowTable" class="table-wrap responsive-table"></div><div id="cashFlowPager" class="pager"></div>
       </section>
 
-      <section id="view-jobs" class="view" aria-labelledby="jobsTitle" hidden>
-        <div class="section-head"><div><p class="eyebrow">MAINTENANCE</p><h1 id="jobsTitle">工作狀態</h1></div><button type="button" class="ghost refresh-view">更新</button></div>
-        <div id="jobCards" class="job-grid"></div>
-        <div class="maintenance-actions">
-          <button id="requestRebuild" class="primary" type="button">排入持倉重算</button>
-          <button id="requestMarket" type="button">排入市場更新</button>
-        </div>
-        <p class="muted">維護要求只會排隊，統一由每日約 07:30 的唯一排程處理。</p>
-      </section>
-
-      <section id="view-backup" class="view backup-page" aria-labelledby="backupTitle" hidden>
-        <div class="section-head">
-          <div><p class="eyebrow">SYSTEM SETTINGS</p><h1 id="backupTitle">備份與還原</h1></div>
-          <div class="section-actions">
-            <button id="restoreData" class="ghost" type="button">還原資料</button>
-            <button id="newBackup" class="primary" type="button">建立新備份</button>
-          </div>
-        </div>
-        <p class="muted">完整備份會複製目前 Google Sheet，但不會切換正式檔案或 API 連線。</p>
-        <div id="backupOverview" class="backup-overview" aria-live="polite"></div>
-        <div id="restoreRecovery" class="restore-recovery" aria-live="assertive" hidden></div>
-        <article class="panel backup-list-panel">
-          <div class="panel-title backup-list-head">
-            <div><h2>備份清單</h2><span>預設只顯示已驗證且可用的備份</span></div>
-            <div class="backup-list-actions">
-              <label class="inline-check"><input id="showInvalidBackups" type="checkbox"> 顯示無效備份</label>
-              <button id="addLegacyBackup" class="ghost" type="button">加入其他備份檔</button>
-              <button id="refreshBackups" class="ghost" type="button">更新清單</button>
-            </div>
-          </div>
-          <div id="backupTable" class="table-wrap backup-table"></div>
-        </article>
+      <section id="view-system" class="view system-page" aria-labelledby="systemTitle" hidden>
+        <div class="section-head"><div><p class="eyebrow">SYSTEM</p><h1 id="systemTitle">系統</h1></div><button type="button" class="ghost refresh-view">更新狀態</button></div>
+        <article class="panel system-section"><div class="panel-title"><h2>帳號與安全</h2><span>Session 與登入狀態</span></div><div id="accountSecurityStatus" class="status-grid"></div><div class="maintenance-actions"><button id="changePassword" type="button">變更網頁登入密碼</button><button id="logoutAllDevices" class="danger-button" type="button">登出所有裝置</button></div><p class="muted">忘記密碼時，請回到 Google Sheet 的「資產記錄 V8.5.0」選單重設。</p></article>
+        <article class="panel system-section"><div class="panel-title"><h2>資料維護</h2><span>工作統一由每日排程處理</span></div><div id="jobCards" class="job-grid"></div><div class="maintenance-actions"><button id="requestMarket" type="button">排入市場更新</button><button id="requestRebuild" class="primary" type="button">排入完整歷史重建</button></div></article>
+        <article class="panel system-section backup-page"><div class="section-head compact"><div><h2>備份與還原</h2><p class="muted">沿用 v8.4 完整備份與可回復還原流程。</p></div><div class="section-actions"><button id="restoreData" class="ghost" type="button">還原資料</button><button id="newBackup" class="primary" type="button">建立新備份</button></div></div><div id="backupOverview" class="backup-overview" aria-live="polite"></div><div id="restoreRecovery" class="restore-recovery" aria-live="assertive" hidden></div><div class="backup-list-actions"><label class="inline-check"><input id="showInvalidBackups" type="checkbox"> 顯示無效備份</label><button id="addLegacyBackup" class="ghost" type="button">加入其他備份檔</button><button id="refreshBackups" class="ghost" type="button">載入／更新備份清單</button></div><div id="backupTable" class="table-wrap backup-table"></div></article>
+        <article class="panel system-section"><div class="panel-title"><h2>系統資訊</h2><span>版本與每日排程</span></div><div id="systemInfo" class="status-grid"></div><details id="technicalInfo"><summary>技術資訊</summary><pre id="technicalInfoBody"></pre></details></article>
       </section>
     </main>
   </div>
 
-  <dialog id="editorDialog">
-    <form id="editorForm" method="dialog" class="dialog-card">
+  <dialog id="editorDialog" class="editor-drawer">
+    <form id="editorForm" method="dialog" class="dialog-card drawer-card">
       <div class="dialog-head"><h2 id="editorTitle">編輯</h2><button id="closeEditor" type="button" class="icon-button" aria-label="關閉">×</button></div>
       <div id="editorFields" class="form-grid"></div>
+      <div id="transactionEstimate" class="transaction-estimate" hidden></div>
       <p id="editorError" class="form-error" role="alert"></p>
       <div class="dialog-actions"><button id="cancelEditor" type="button" class="ghost">取消</button><button id="saveEditor" type="submit" class="primary">儲存</button></div>
     </form>
   </dialog>
 
-  <dialog id="backupWizardDialog" class="wizard-dialog">
-    <form id="backupWizardForm" method="dialog" class="dialog-card wizard-card">
-      <div class="dialog-head">
-        <div><p id="backupWizardStep" class="eyebrow">步驟 1 / 5</p><h2 id="backupWizardTitle">目前狀態</h2></div>
-        <button id="closeBackupWizard" type="button" class="icon-button" aria-label="關閉">×</button>
-      </div>
-      <div id="backupWizardBody" class="wizard-body" aria-live="polite"></div>
-      <p id="backupWizardError" class="form-error" role="alert"></p>
-      <div id="backupWizardActions" class="dialog-actions"></div>
+  <dialog id="reauthDialog">
+    <form id="reauthForm" class="dialog-card">
+      <div class="dialog-head"><h2 id="reauthTitle">再次驗證密碼</h2><button id="closeReauth" type="button" class="icon-button" aria-label="關閉">×</button></div>
+      <p class="muted">高風險操作需要再次輸入目前的原始密碼。</p>
+      <label>帳號<input id="reauthUsername" autocomplete="username" required></label>
+      <label>密碼<input id="reauthPassword" type="password" autocomplete="current-password" required></label>
+      <p id="reauthError" class="form-error" role="alert"></p>
+      <div class="dialog-actions"><button id="cancelReauth" type="button" class="ghost">取消</button><button id="submitReauth" type="submit" class="danger-button">驗證並繼續</button></div>
     </form>
   </dialog>
 
-  <dialog id="restoreWizardDialog" class="wizard-dialog restore-wizard-dialog">
-    <form id="restoreWizardForm" method="dialog" class="dialog-card wizard-card">
-      <div class="dialog-head">
-        <div><p id="restoreWizardStep" class="eyebrow">步驟 1 / 6</p><h2 id="restoreWizardTitle">選擇備份</h2></div>
-        <button id="closeRestoreWizard" type="button" class="icon-button" aria-label="關閉">×</button>
-      </div>
-      <div id="restoreWizardBody" class="wizard-body" aria-live="polite"></div>
-      <p id="restoreWizardError" class="form-error" role="alert"></p>
-      <div id="restoreWizardActions" class="dialog-actions"></div>
+  <dialog id="changePasswordDialog">
+    <form id="changePasswordForm" class="dialog-card">
+      <div class="dialog-head"><h2>變更網頁登入密碼</h2><button id="closeChangePassword" type="button" class="icon-button" aria-label="關閉">×</button></div>
+      <p class="muted">新密碼至少 8 個 Unicode 字元；儲存後所有裝置會立即登出。</p>
+      <label>新密碼<input id="newPassword" type="password" autocomplete="new-password" required></label>
+      <label>再次輸入新密碼<input id="confirmNewPassword" type="password" autocomplete="new-password" required></label>
+      <button id="toggleNewPasswords" type="button" class="ghost">顯示密碼</button>
+      <p id="changePasswordError" class="form-error" role="alert"></p>
+      <div class="dialog-actions"><button id="cancelChangePassword" type="button" class="ghost">取消</button><button id="submitChangePassword" type="submit" class="danger-button">變更並登出</button></div>
     </form>
   </dialog>
 
-  <dialog id="legacyBackupDialog">
-    <form id="legacyBackupForm" class="dialog-card">
-      <div class="dialog-head"><h2>加入其他備份檔</h2><button id="closeLegacyBackup" type="button" class="icon-button" aria-label="關閉">×</button></div>
-      <p class="muted">貼上舊版 Google Sheet 備份網址。系統只會讀取、檢查並登記，不會修改該檔案。</p>
-      <label class="reauth-field">Google Sheet 網址<input id="legacyBackupUrl" type="url" required placeholder="https://docs.google.com/spreadsheets/d/…/edit" autocomplete="off"></label>
-      <p id="legacyBackupError" class="form-error" role="alert"></p>
-      <div class="dialog-actions"><button id="cancelLegacyBackup" type="button" class="ghost">取消</button><button id="saveLegacyBackup" type="submit" class="primary">檢查並加入</button></div>
-    </form>
-  </dialog>
+  <dialog id="backupWizardDialog" class="wizard-dialog"><form id="backupWizardForm" method="dialog" class="dialog-card wizard-card"><div class="dialog-head"><div><p id="backupWizardStep" class="eyebrow">步驟 1 / 3</p><h2 id="backupWizardTitle">確認資料</h2></div><button id="closeBackupWizard" type="button" class="icon-button" aria-label="關閉">×</button></div><div id="backupWizardBody" class="wizard-body" aria-live="polite"></div><p id="backupWizardError" class="form-error" role="alert"></p><div id="backupWizardActions" class="dialog-actions"></div></form></dialog>
+  <dialog id="restoreWizardDialog" class="wizard-dialog restore-wizard-dialog"><form id="restoreWizardForm" method="dialog" class="dialog-card wizard-card"><div class="dialog-head"><div><p id="restoreWizardStep" class="eyebrow">步驟 1 / 4</p><h2 id="restoreWizardTitle">選擇備份</h2></div><button id="closeRestoreWizard" type="button" class="icon-button" aria-label="關閉">×</button></div><div id="restoreWizardBody" class="wizard-body" aria-live="polite"></div><p id="restoreWizardError" class="form-error" role="alert"></p><div id="restoreWizardActions" class="dialog-actions"></div></form></dialog>
+  <dialog id="legacyBackupDialog"><form id="legacyBackupForm" class="dialog-card"><div class="dialog-head"><h2>加入其他備份檔</h2><button id="closeLegacyBackup" type="button" class="icon-button" aria-label="關閉">×</button></div><p class="muted">貼上舊版 Google Sheet 備份網址。系統只會讀取、檢查並登記。</p><label class="reauth-field">Google Sheet 網址<input id="legacyBackupUrl" type="url" required placeholder="https://docs.google.com/spreadsheets/d/…/edit" autocomplete="off"></label><p id="legacyBackupError" class="form-error" role="alert"></p><div class="dialog-actions"><button id="cancelLegacyBackup" type="button" class="ghost">取消</button><button id="saveLegacyBackup" type="submit" class="primary">檢查並加入</button></div></form></dialog>
 
   <script src="config.js"></script>
+  <script src="src/auth/session-store.js"></script>
+  <script src="src/auth/password-kdf.js"></script>
   <script src="api-client.js"></script>
+  <script src="src/auth/auth-api.js"></script>
+  <script src="src/auth/login-page.js"></script>
+  <script src="src/auth/auth-guard.js"></script>
   <script src="ui-format.js"></script>
   <script src="backup-restore/backup-restore-api.js"></script>
   <script src="backup-restore/backup-wizard.js"></script>

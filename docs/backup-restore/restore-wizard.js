@@ -26,7 +26,7 @@
 
   function setHeader(step, title, customStep) {
     state.step = step;
-    document.getElementById('restoreWizardStep').textContent = customStep || ('步驟 ' + step + ' / 6');
+    document.getElementById('restoreWizardStep').textContent = customStep || ('步驟 ' + step + ' / 4');
     document.getElementById('restoreWizardTitle').textContent = title;
     errorBox.textContent = '';
   }
@@ -100,7 +100,7 @@
   }
 
   function renderOptions() {
-    setHeader(3, '選擇還原範圍'); body.replaceChildren();
+    setHeader(2, '選擇還原範圍'); body.replaceChildren();
     var fixed = node('div', 'restore-fixed-options');
     fixed.appendChild(node('strong', '', '固定執行'));
     var fixedList = node('ul', 'check-list');
@@ -130,22 +130,23 @@
   }
 
   function renderReauthentication(forRollback) {
-    setHeader(4, forRollback ? '驗證後回復' : '再次驗證身分', forRollback ? '回復 1 / 3' : null); body.replaceChildren();
-    body.appendChild(node('p', 'wizard-lead', forRollback ? '回復會使用系統自動建立的「還原前緊急備份」。' : '還原是高權限操作，請再次輸入目前登入使用的 API 金鑰。'));
-    var label = node('label', 'reauth-field', '目前 API 金鑰');
-    var input = document.createElement('input'); input.type = 'password'; input.autocomplete = 'current-password'; input.spellcheck = false; label.appendChild(input); body.appendChild(label);
+    setHeader(3, forRollback ? '驗證後回復' : '再次驗證密碼', forRollback ? '回復 1 / 3' : null); body.replaceChildren();
+    body.appendChild(node('p', 'wizard-lead', forRollback ? '回復會使用系統自動建立的「還原前緊急備份」。' : '還原是高權限操作，請再次輸入目前的原始密碼。'));
+    var usernameLabel = node('label', 'reauth-field', '登入帳號'); var username = document.createElement('input'); username.autocomplete = 'username'; username.required = true; usernameLabel.appendChild(username);
+    var label = node('label', 'reauth-field', '目前密碼');
+    var input = document.createElement('input'); input.type = 'password'; input.autocomplete = 'current-password'; input.spellcheck = false; label.appendChild(input); body.append(usernameLabel, label);
     actions.replaceChildren(button('取消', 'ghost', close), button('驗證', 'primary', async function () {
-      if (!input.value.trim()) { errorBox.textContent = '請輸入目前的 API 金鑰'; return; }
+      if (!username.value.trim() || !input.value) { errorBox.textContent = '請輸入帳號與目前密碼'; return; }
       setBusy(true);
       try {
-        var response = await root.AssetRecordBackupApi.elevate(input.value.trim()); state.elevatedToken = response.data.elevatedToken;
+        var password = input.value; var response = await root.AssetRecordBackupApi.elevate(username.value.trim(), password); password = ''; input.value = ''; state.elevatedToken = response.data.elevatedToken;
         if (forRollback) executeRollback(); else if (state.resumePrepare) executePrepareResume(); else renderConfirmation();
       } catch (error) { errorBox.textContent = error && error.message ? error.message : '驗證失敗'; setBusy(false); }
     }));
   }
 
   function renderConfirmation() {
-    setHeader(5, '最後確認'); body.replaceChildren();
+    setHeader(3, '最後確認'); body.replaceChildren();
     body.append(node('p', 'wizard-danger', '這會以備份內容取代目前正式來源資料。系統會先建立並驗證還原前緊急備份，失敗時可用它回復。'));
     var label = node('label', 'confirm-restore-field', '請輸入「還原」以確認');
     var input = document.createElement('input'); input.type = 'text'; input.autocomplete = 'off'; label.appendChild(input); body.appendChild(label);
@@ -164,7 +165,7 @@
   }
 
   function showProgress(index, rollbackMode) {
-    setHeader(6, rollbackMode ? '正在回復還原前狀態' : '正在還原資料', rollbackMode ? '回復 2 / 3' : null);
+    setHeader(4, rollbackMode ? '正在回復還原前狀態' : '正在還原資料', rollbackMode ? '回復 2 / 3' : null);
     body.replaceChildren(progressList(index, false, rollbackMode)); actions.replaceChildren(); setBusy(true);
   }
 
@@ -178,9 +179,9 @@
       showProgress(0, false);
       var prepared = await root.AssetRecordBackupApi.prepareRestore(state.backupId, state.elevatedToken, state.options); rememberOperation(prepared);
       showProgress(2, false);
-      var applied = await root.AssetRecordBackupApi.applyRestore(state.operation.operationId); rememberOperation(applied);
+      var applied = await root.AssetRecordBackupApi.applyRestore(state.operation.operationId, state.elevatedToken); rememberOperation(applied);
       showProgress(3, false);
-      var finalized = await root.AssetRecordBackupApi.finalizeRestore(state.operation.operationId); rememberOperation(finalized);
+      var finalized = await root.AssetRecordBackupApi.finalizeRestore(state.operation.operationId, state.elevatedToken); rememberOperation(finalized);
       renderSuccess(finalized.data);
     } catch (error) { handleFailure(error, false); }
   }
@@ -198,11 +199,11 @@
       var stage = state.operation.currentStage;
       if (stage === 'PREPARED' || stage === 'APPLYING') {
         showProgress(2, rollbackMode);
-        var applied = await root.AssetRecordBackupApi.applyRestore(state.operation.operationId); rememberOperation(applied);
+        var applied = await root.AssetRecordBackupApi.applyRestore(state.operation.operationId, state.elevatedToken); rememberOperation(applied);
       }
       if (state.operation.currentStage === 'SOURCE_RESTORED' || ['FINALIZING', 'VALIDATING'].indexOf(stage) >= 0) {
         showProgress(3, rollbackMode);
-        var finalized = await root.AssetRecordBackupApi.finalizeRestore(state.operation.operationId); rememberOperation(finalized); renderSuccess(finalized.data, rollbackMode); return;
+        var finalized = await root.AssetRecordBackupApi.finalizeRestore(state.operation.operationId, state.elevatedToken); rememberOperation(finalized); renderSuccess(finalized.data, rollbackMode); return;
       }
       if (state.operation.status === 'SUCCESS') renderSuccess({ operation: state.operation }, rollbackMode);
     } catch (error) { handleFailure(error, rollbackMode); }
@@ -222,7 +223,7 @@
 
   function handleFailure(error, rollbackMode) {
     var failedOperation = operationFromError(error); if (failedOperation) state.operation = failedOperation;
-    setHeader(6, rollbackMode ? '回復未完成' : '還原未完成', rollbackMode ? '回復 3 / 3' : null);
+    setHeader(4, rollbackMode ? '回復未完成' : '還原未完成', rollbackMode ? '回復 3 / 3' : null);
     body.replaceChildren(progressList(3, true, rollbackMode)); errorBox.textContent = error && error.message ? error.message : '還原流程失敗';
     var buttons = [button('關閉並查看狀態', 'ghost', function () { close(); complete(); })];
     if (state.operation && state.operation.emergencyBackupId && !rollbackMode) buttons.push(button('回復還原前狀態', 'danger-button', function () { renderReauthentication(true); }));

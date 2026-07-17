@@ -58,7 +58,7 @@ function validateBackupCandidate_(backupSpreadsheet, options) {
   var systemVersion = cleanText_(settings.BACKUP_SYSTEM_VERSION || settings.SYSTEM_VERSION);
   var schemaVersion = cleanText_(settings.BACKUP_SCHEMA_VERSION || settings.SCHEMA_VERSION);
   backupValidationCheckV84_(checks, '系統版本可讀取', Boolean(systemVersion), 'BACKUP_VERSION_UNSUPPORTED', '無法讀取備份系統版本');
-  var supported = options.requireArchiveMetadata ? systemVersion === V84_BACKUP.VERSION : /^8\.[1-4]\./.test(systemVersion);
+  var supported = options.requireArchiveMetadata ? systemVersion === V84_BACKUP.VERSION : /^8\.[1-5]\./.test(systemVersion);
   backupValidationCheckV84_(checks, '備份版本受支援', supported, 'BACKUP_VERSION_UNSUPPORTED', '備份版本不受支援：' + (systemVersion || '未知'), { systemVersion: systemVersion, schemaVersion: schemaVersion });
   if (options.requireArchiveMetadata) {
     backupValidationCheckV84_(checks, 'FILE_ROLE 為 BACKUP', cleanText_(settings.FILE_ROLE) === V84_BACKUP.FILE_ROLE_BACKUP, 'BACKUP_VALIDATION_FAILED', '備份檔 FILE_ROLE 不是 BACKUP');
