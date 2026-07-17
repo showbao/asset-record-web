@@ -87,17 +87,11 @@ function routeRestoreApiActionV84_(action, params, payload) {
 
 function installV84() {
   if (/^8\.5\./.test(V81.VERSION) && typeof installV85 === 'function') return installV85();
-  var generatedKey = '';
   try {
     var result = withDocumentLock_(function () {
       var schema = ensureV81Schema_();
       var sequences = initializeIdSequences_();
       var trigger = installDailyTriggerV82_();
-      var properties = PropertiesService.getScriptProperties();
-      if (!cleanText_(properties.getProperty(V83_PROPERTIES.API_KEY_HASH))) {
-        generatedKey = generateApiKeyV83_();
-        storeApiKeyV83_(generatedKey);
-      }
       ensurePrimaryFileRoleV84_();
       setSettingValues_({
         SYSTEM_VERSION: V84_BACKUP.VERSION,
@@ -114,13 +108,10 @@ function installV84() {
         schema: schema,
         sequences: sequences,
         trigger: trigger,
-        apiKeyCreated: Boolean(generatedKey),
-        apiKeyLast4: properties.getProperty(V83_PROPERTIES.API_KEY_LAST4) || null,
         backupInfrastructure: '首次建立備份時自動建置',
         next: ['backup.getOverview', 'backup.create', 'backup.list', 'restore.preview', 'restore.prepare']
       });
     });
-    if (generatedKey) showApiKeyOnceV83_(generatedKey);
     return result;
   } catch (error) {
     return apiResult_(false, error.apiCode || 'INSTALL_V84_FAILED', error.message, error.details || {});

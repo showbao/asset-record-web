@@ -9,9 +9,7 @@ const gasFiles = fs.readdirSync(gasDir).filter((name) => name.endsWith('.gs')).s
 const source = gasFiles.map((name) => fs.readFileSync(path.join(gasDir, name), 'utf8')).join('\n') + `
 globalThis.__authTest = {
   V85_AUTH,
-  V83_PROPERTIES,
   memoryPropertiesV83_,
-  hashApiKeyV83_,
   saveCredentialVerifierV85_,
   changeCredentialVerifierV85_,
   authParametersForUsernameV85_,
@@ -93,7 +91,7 @@ assert.equal(credential.passwordVersion, 1);
 assert.equal(lockDepth, 0);
 
 const stored = props.getProperties();
-assert.equal(stored.AUTH_MODE, 'DUAL');
+assert.equal(stored.AUTH_MODE, 'PASSWORD_SESSION');
 assert.equal(stored.AUTH_USERNAME_NORMALIZED, 'showbao');
 assert.equal(stored.AUTH_PASSWORD_ALGORITHM, 'PBKDF2-HMAC-SHA256');
 assert.equal(stored.AUTH_PASSWORD_ITERATIONS, '600000');
@@ -168,13 +166,6 @@ assert.equal(apiBegin.success, true);
 const protectedResult = t.handleApiRequestV83_({ action: 'dashboard.getOverview', requestId: 'protected-1', payload: {}, params: {} }, options);
 assert.equal(protectedResult.code, 'AUTH_REQUIRED');
 
-const legacyKey = 'arv83_' + 'a'.repeat(96);
-const legacyOptions = { properties: props, expectedHash: t.hashApiKeyV83_(legacyKey), get nowMs() { return nowMs; } };
-assert.equal(t.authenticateApiRequestV85_({ apiKey: legacyKey }, 'getJobStatus', legacyOptions).legacy, true);
-props.setProperty('AUTH_MODE', 'PASSWORD_SESSION');
-assert.throws(() => t.authenticateApiRequestV85_({ apiKey: legacyKey }, 'getJobStatus', legacyOptions), (error) => error.apiCode === 'AUTH_LEGACY_DISABLED');
-
-props.setProperty('AUTH_MODE', 'DUAL');
 const replacementSession = token('replacement-session');
 t.authLoginApiV85_({ username: 'showbao', derivedKey: derivedA, sessionTokenCandidate: replacementSession, rememberMe: false }, options);
 const passwordElevation = token('elevated:password');
@@ -210,4 +201,4 @@ const authSource = ['70_AuthConfig.gs', '71_AuthService.gs', '72_SessionService.
 assert.equal(/console\.(log|debug|info|warn|error)\s*\(/.test(authSource), false);
 assert.equal(/AUTH_(PLAIN_PASSWORD|LAST_INPUT_PASSWORD|DERIVED_KEY)/.test(authSource), false);
 
-console.log(JSON.stringify({ ok: true, assertions: 65, authMode: props.getProperty('AUTH_MODE') }, null, 2));
+console.log(JSON.stringify({ ok: true, assertions: 63, authMode: props.getProperty('AUTH_MODE') }, null, 2));

@@ -108,7 +108,7 @@
     fixed.appendChild(fixedList); body.appendChild(fixed);
     var list = node('div', 'restore-options');
     list.append(
-      checkOption('restoreBusinessSettings', '恢復業務設定', '只恢復白名單內的基準幣別；API 金鑰與系統身分不會被覆蓋。'),
+      checkOption('restoreBusinessSettings', '恢復業務設定', '只恢復白名單內的基準幣別；帳密驗證與系統身分不會被覆蓋。'),
       checkOption('restoreSnapshots', '恢復歷史快照', state.preview.snapshotRebuildRecommended ? '此舊版備份缺少快照分頁，不能直接恢復；可另選完整重建。' : '包含投資趨勢快照與趨勢估值明細。', state.preview.snapshotRebuildRecommended),
       checkOption('refreshPrices', '重新整理價格／淨值', '外部來源失敗時會保留可用快取並顯示警告。'),
       checkOption('refreshFx', '重新整理匯率', '外部來源失敗時會保留可用快取並顯示警告。'),

@@ -12,7 +12,6 @@ var V85_AUTH = Object.freeze({
   MAX_SESSIONS: 5,
   FAILED_LIMIT: 5,
   LOCK_DURATIONS_MS: Object.freeze([15 * 60 * 1000, 30 * 60 * 1000, 60 * 60 * 1000]),
-  MODE_DUAL: 'DUAL',
   MODE_PASSWORD_SESSION: 'PASSWORD_SESSION',
   PROPERTIES: Object.freeze({
     MODE: 'AUTH_MODE',
@@ -90,8 +89,7 @@ function randomServerSecretV85_() {
 }
 
 function authModeV85_(options) {
-  var mode = cleanText_(authPropertyStoreV85_(options).getProperty(V85_AUTH.PROPERTIES.MODE));
-  return mode === V85_AUTH.MODE_DUAL ? mode : V85_AUTH.MODE_PASSWORD_SESSION;
+  return V85_AUTH.MODE_PASSWORD_SESSION;
 }
 
 function isAuthConfiguredV85_(options) {

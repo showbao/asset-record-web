@@ -130,7 +130,7 @@ function installV85() {
       var sequences = initializeIdSequences_();
       var trigger = installDailyTriggerV82_();
       var properties = authPropertyStoreV85_();
-      if (!cleanText_(properties.getProperty(V85_AUTH.PROPERTIES.MODE))) properties.setProperty(V85_AUTH.PROPERTIES.MODE, V85_AUTH.MODE_DUAL);
+      properties.setProperty(V85_AUTH.PROPERTIES.MODE, V85_AUTH.MODE_PASSWORD_SESSION);
       ensurePrimaryFileRoleV84_();
       setSettingValues_({
         SYSTEM_VERSION: V81.VERSION,
