@@ -18,13 +18,14 @@
 
 ## v8.4.0 GAS 與備份／還原更新
 
-1. 將 v8.4.0 GAS 檔案更新到目前正式 Sheet 的原綁定式專案，不建立另一個專案。
-2. 以 Sheet 擁有者執行 `installV84()`，接受新增的 Google Drive 與跨試算表 OAuth 權限。
-3. 更新目前 Web App deployment 的程式版本，保留 deployment ID 與 `/exec` URL。
-4. 從 Pages 登入後開啟「備份與還原」，先確認狀態摘要，再建立一份 `MANUAL` 備份。
-5. 確認副本位於「資產記錄備份」、名稱含秒數、`FILE_ROLE=BACKUP`、清單狀態為 `VERIFIED`，且正式 Sheet ID 不變。
-6. 以測試備份開啟還原精靈，確認差異預覽、再次輸入目前 API 金鑰、輸入「還原」與 Prepare／Apply／Finalize 全部成功。
-7. 驗證完成後正式 Sheet ID、deployment ID、`/exec` URL、API 金鑰末四碼與 `scheduledDailyJob` 均未改變，且受管理每日觸發器正好一個。
+1. 在本機建立不進版控的 `.clasp.json`，`scriptId` 指向目前正式 Sheet 的原綁定式專案，`rootDir` 設為 `gas`；不要建立另一個 Apps Script 專案。
+2. 執行 `node --test tests/*.test.js`，確認全部測試通過後再執行 `clasp push --force`。
+3. 建立不可變版本，並用既有 deployment ID 更新目前 Web App；保留 `/exec` URL。
+4. 以 Sheet 擁有者執行 `installV84()`，接受新增的 Google Drive 與跨試算表 OAuth 權限。安裝器會把 v8.3.1 舊正式角色 `PRODUCTION` 遷移成 v8.4 的 `PRIMARY`。
+5. 從 Pages 登入後開啟「備份與還原」，先確認狀態摘要，再建立一份 `MANUAL` 備份。
+6. 確認副本位於「資產記錄備份」、名稱含秒數、`FILE_ROLE=BACKUP`、清單狀態為 `VERIFIED`，且正式 Sheet ID 不變。
+7. 以測試備份開啟還原精靈，確認差異預覽、再次輸入目前 API 金鑰、輸入「還原」與 Prepare／Apply／Finalize 全部成功。
+8. 驗證完成後正式 Sheet ID、deployment ID、`/exec` URL、API 金鑰末四碼與 `scheduledDailyJob` 均未改變，且受管理每日觸發器正好一個。
 
 若還原頁顯示未完成工作：`PREPARED`／`SOURCE_RESTORED` 可按「繼續還原」；`ROLLBACK_REQUIRED` 必須再次驗證後按「回復還原前狀態」。不要手動解除 Script Properties 鎖，也不要把緊急備份直接改成正式檔。
 

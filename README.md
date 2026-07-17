@@ -4,7 +4,19 @@
 
 正式網站：https://showbao.github.io/asset-record-web/
 
-此公開儲存庫只包含 HTML、CSS、JavaScript 與文件；Apps Script、試算表資料及 API 金鑰不得加入版本控制。
+此公開儲存庫包含靜態前端、Apps Script 原始碼、測試與部署文件；試算表資料、API 金鑰、OAuth 憑證與 `.clasp.json` 不得加入版本控制。
+
+## 目錄
+
+- `docs/`：GitHub Pages 靜態前端。
+- `gas/`：正式 Sheet 的綁定式 Apps Script 原始碼。
+- `tests/`：v8.1～v8.4 的 Node.js 靜態與流程測試。
+
+## 測試
+
+```powershell
+node --test tests/*.test.js
+```
 
 ## 本機預覽
 
