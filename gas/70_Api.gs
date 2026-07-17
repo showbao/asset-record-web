@@ -424,7 +424,7 @@ function getDashboardSummaryApiV83_() {
 function getPerformanceListApiV83_(params) {
   params = ensureAllowedKeysV83_(params || {}, ['page', 'pageSize', 'query', 'category', 'status'], 'params');
   var status = cleanText_(params.status) || 'all';
-  if (['held', 'closed', 'all'].indexOf(status) < 0) throwApiErrorV83_('VALIDATION_ERROR', 'status 只允許 held、closed 或 all');
+  if (['held', 'closed', 'price_error', 'all'].indexOf(status) < 0) throwApiErrorV83_('VALIDATION_ERROR', 'status 只允許 held、closed、price_error 或 all');
   var baseHeaders = V81.HEADERS.PERFORMANCE_REQUIRED.filter(function (header) { return header !== 'XIRR（年化）'; });
   var performanceTable = readTable_(V81.SHEETS.PERFORMANCE, { requiredHeaders: baseHeaders, idHeader: '標的代號' });
   if (performanceTable.headerMap['XIRR（年化）'] == null && performanceTable.headerMap['XIRR'] == null) throw new Error('標的績效缺少 XIRR（年化）欄位');
@@ -432,7 +432,7 @@ function getPerformanceListApiV83_(params) {
     var held = cleanText_(row['狀態']) !== '已出清';
     return containsV83_([row['標的代號'], row['標的名稱']], params.query) &&
       (!cleanText_(params.category) || cleanText_(row['類別']) === cleanText_(params.category)) &&
-      (status === 'all' || (status === 'held' ? held : !held));
+      (status === 'all' || (status === 'held' ? held : (status === 'closed' ? !held : (held && (cleanNullableNumberV83_(row['目前價格']) == null || !dateKey_(row['價格日期']))))));
   });
   rows.sort(function (a, b) {
     var categoryOrder = cleanText_(a['類別']).localeCompare(cleanText_(b['類別']));
@@ -570,12 +570,19 @@ function routeApiActionV83_(action, params, payload, options, requestId) {
 function handleApiRequestV83_(request, options) {
   var requestId = cleanText_(request && request.requestId);
   try {
-    ensureAllowedKeysV83_(request || {}, ['action', 'apiKey', 'requestId', 'params', 'payload'], 'request');
+    ensureAllowedKeysV83_(request || {}, ['action', 'apiKey', 'sessionToken', 'elevatedToken', 'requestId', 'params', 'payload'], 'request');
     if (requestId.length > 128) throwApiErrorV83_('INVALID_REQUEST', 'requestId 長度不得超過 128');
     var action = cleanText_(request && request.action);
     if (!action) throwApiErrorV83_('INVALID_REQUEST', 'action 必填');
-    validateApiKeyV83_(request.apiKey, options);
-    var result = routeApiActionV83_(action, request.params || {}, request.payload || {}, options, requestId);
+    if (isPublicAuthActionV85_(action)) {
+      var publicResult = routeAuthApiActionV85_(action, request, options);
+      return apiResultV83_(publicResult.success, publicResult.code, publicResult.message, publicResult.data, requestId);
+    }
+    authenticateApiRequestV85_(request, action, options);
+    var scope = elevatedScopeForActionV85_(action);
+    if (scope) requireElevatedSessionV85_(request.sessionToken, request.elevatedToken, scope, options);
+    var result = isAuthActionV85_(action) ? routeAuthApiActionV85_(action, request, options) : routeApiActionV85_(action, request.params || {}, request.payload || {}, options, requestId);
+    if (action === 'restore.finalize' && result.success) revokeElevatedSessionV85_(request.sessionToken, request.elevatedToken, options);
     var response = apiResultV83_(result.success, result.code, result.message, result.data, requestId);
     response.warnings = result.warnings || [];
     return response;
@@ -638,6 +645,7 @@ function rotateApiKeyV83() {
 }
 
 function installV831() {
+  if (/^8\.5\./.test(V81.VERSION) && typeof installV85 === 'function') return installV85();
   if (/^8\.4\./.test(V81.VERSION) && typeof installV84 === 'function') return installV84();
   var generatedKey = '';
   try {
@@ -734,6 +742,7 @@ function memoryPropertiesV83_() {
   return {
     getProperty: function (key) { return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : null; },
     setProperty: function (key, value) { values[key] = String(value); return this; },
+    setProperties: function (input) { Object.keys(input || {}).forEach(function (key) { values[key] = String(input[key]); }); return this; },
     deleteProperty: function (key) { delete values[key]; return this; },
     getProperties: function () { return Object.assign({}, values); }
   };
@@ -796,6 +805,7 @@ function validatePhase3InternalV83_(options) {
     names = createValidationSheetsV83_();
     var serviceContext = { sheets: names, validationMode: true, skipDirty: true, dirtyEvents: [], sequences: { V81_TX_SEQUENCE: 0, V81_CFX_SEQUENCE: 0 } };
     var properties = memoryPropertiesV83_();
+    properties.setProperty(V85_AUTH.PROPERTIES.MODE, V85_AUTH.MODE_DUAL);
     var validationKey = 'v83-validation-key';
     var apiOptions = {
       serviceContext: serviceContext,
@@ -827,8 +837,8 @@ function validatePhase3InternalV83_(options) {
     operations.cashSearch = call('listExternalCashFlows', { query: 'validation', deleted: 'all' });
     operations.disableAsset = call('disableAsset', { code: 'V83TEST' });
     operations.disableAssetAgain = call('disableAsset', { code: 'V83TEST' });
-    operations.requestRebuild = call('requestRebuild');
-    operations.requestRebuildAgain = call('requestRebuild');
+    operations.requestRebuild = requestJobApiV83_('rebuild', apiOptions);
+    operations.requestRebuildAgain = requestJobApiV83_('rebuild', apiOptions);
 
     validationCheck_(checks, '未授權 API 請求被拒絕', !operations.unauthorized.success && operations.unauthorized.code === 'AUTH_INVALID', operations.unauthorized);
     validationCheck_(checks, '標的 CRUD 與停用', operations.createAsset.success && operations.updateAsset.success && operations.getAsset.success && operations.disableAsset.success && operations.disableAssetAgain.code === 'ALREADY_DISABLED', operations);
@@ -858,7 +868,7 @@ function validatePhase3InternalV83_(options) {
   var triggers = ScriptApp.getProjectTriggers();
   var daily = triggers.filter(function (trigger) { return trigger.getHandlerFunction() === 'scheduledDailyJob'; });
   validationCheck_(checks, '最終只有一個每日排程', triggers.length === 1 && daily.length === 1, { total: triggers.length, daily: daily.length });
-  validationCheck_(checks, 'V8.3.1 以上版本與欄位版本', ['8.3.1', '8.4.0'].indexOf(V81.VERSION) >= 0 && ['8.3.1', '8.4.0'].indexOf(V81.SCHEMA_VERSION) >= 0, { version: V81.VERSION, schema: V81.SCHEMA_VERSION });
+    validationCheck_(checks, 'V8.3.1 以上版本與欄位版本', ['8.3.1', '8.4.0', '8.5.0'].indexOf(V81.VERSION) >= 0 && ['8.3.1', '8.4.0', '8.5.0'].indexOf(V81.SCHEMA_VERSION) >= 0, { version: V81.VERSION, schema: V81.SCHEMA_VERSION });
   if (options.requireCleanup) {
     var legacyExists = Boolean(SpreadsheetApp.getActive().getSheetByName('持倉明細'));
     var transactionsSheet = getSheet_(V81.SHEETS.TRANSACTIONS);
@@ -892,7 +902,7 @@ function validateV831PerformanceAndApi() {
     var oldCount = headers.filter(function (header) { return header === 'XIRR'; }).length;
     var newCount = headers.filter(function (header) { return header === 'XIRR（年化）'; }).length;
     validationCheck_(checks, 'XIRR（年化）恰好一欄', oldCount === 0 && newCount === 1, { oldCount: oldCount, newCount: newCount });
-    validationCheck_(checks, 'V8.3.1 以上版本與欄位版本', ['8.3.1', '8.4.0'].indexOf(V81.VERSION) >= 0 && ['8.3.1', '8.4.0'].indexOf(V81.SCHEMA_VERSION) >= 0, { version: V81.VERSION, schema: V81.SCHEMA_VERSION });
+    validationCheck_(checks, 'V8.3.1 以上版本與欄位版本', ['8.3.1', '8.4.0', '8.5.0'].indexOf(V81.VERSION) >= 0 && ['8.3.1', '8.4.0', '8.5.0'].indexOf(V81.SCHEMA_VERSION) >= 0, { version: V81.VERSION, schema: V81.SCHEMA_VERSION });
 
     var formats = performanceNumberFormatsV831_();
     var columns = [];

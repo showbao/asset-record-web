@@ -114,7 +114,7 @@ const primarySheets = [
   new FakeSheet(t.V81.SHEETS.CASH_FLOWS, [t.V81.HEADERS.CASH_FLOWS, row(t.V81.HEADERS.CASH_FLOWS, { 流水ID: 'CFX-1', 日期: '2026-07-01' })]),
   new FakeSheet(t.V81.SHEETS.TREND, [t.V81.HEADERS.TREND, row(t.V81.HEADERS.TREND, { 取樣日期: '2026-07-10', 取樣級距: '10日' })]),
   new FakeSheet(t.V81.SHEETS.TREND_DETAIL, [t.V81.HEADERS.TREND_DETAIL, row(t.V81.HEADERS.TREND_DETAIL, { 取樣日期: '2026-07-10', 標的代號: '0050' })]),
-  new FakeSheet(t.V81.SHEETS.SETTINGS, [['設定項目', '設定值', '說明'], ['SYSTEM_VERSION', '8.4.0', ''], ['SCHEMA_VERSION', '8.4.0', ''], ['FILE_ROLE', 'PRIMARY', '']])
+  new FakeSheet(t.V81.SHEETS.SETTINGS, [['設定項目', '設定值', '說明'], ['SYSTEM_VERSION', '8.5.0', ''], ['SCHEMA_VERSION', '8.5.0', ''], ['FILE_ROLE', 'PRIMARY', '']])
 ];
 activeSpreadsheet = new FakeSpreadsheet('primary-id', '資產記錄', primarySheets);
 spreadsheets.set(activeSpreadsheet.id, activeSpreadsheet);

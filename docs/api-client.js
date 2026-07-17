@@ -5,8 +5,9 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (root) {
   'use strict';
 
-  var KEY_NAME = 'assetRecordV83ApiKey';
   var pending = new Set();
+  var cache = new Map();
+  var authFailureHandler = null;
 
   function ApiError(code, message, data) {
     this.name = 'ApiError';
@@ -18,36 +19,28 @@
   ApiError.prototype = Object.create(Error.prototype);
   ApiError.prototype.constructor = ApiError;
 
-  function storage() {
-    if (!root.sessionStorage) throw new ApiError('SESSION_UNAVAILABLE', '瀏覽器無法使用工作階段儲存空間');
-    return root.sessionStorage;
-  }
-
-  function saveKey(value) {
-    var input = String(value || '').trim();
-    // The Sheet dialog contains the token followed by usage instructions. If
-    // the user copies the whole dialog, keep only the generated 256-bit token.
-    var token = input.match(/arv83_[0-9a-f]{96}/i);
-    var key = token ? token[0] : input;
-    if (!key) throw new ApiError('AUTH_REQUIRED', '請輸入 API 金鑰');
-    storage().setItem(KEY_NAME, key);
-  }
-
-  function getKey() { return storage().getItem(KEY_NAME) || ''; }
-  function clearKey() { storage().removeItem(KEY_NAME); }
-
   function apiUrl() {
     var value = root.ASSET_RECORD_CONFIG && root.ASSET_RECORD_CONFIG.apiUrl;
-    if (!value) throw new ApiError('CONFIG_REQUIRED', '尚未設定 GAS Web App API URL');
+    if (!value) throw new ApiError('CONFIG_REQUIRED', '系統連線設定不完整');
     return String(value);
   }
 
   function uuid() {
     if (root.crypto && typeof root.crypto.randomUUID === 'function') return root.crypto.randomUUID();
-    return 'req-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+    var bytes = new Uint8Array(16);
+    if (root.crypto && root.crypto.getRandomValues) root.crypto.getRandomValues(bytes);
+    return Array.prototype.map.call(bytes, function (value) { return ('0' + value.toString(16)).slice(-2); }).join('');
   }
 
-  async function call(action, options) {
+  function sessionToken() {
+    return root.AssetRecordSessionStore ? root.AssetRecordSessionStore.get() : '';
+  }
+
+  function isAuthFailure(code) {
+    return ['AUTH_REQUIRED', 'AUTH_SESSION_EXPIRED', 'AUTH_SESSION_REVOKED', 'AUTH_PASSWORD_VERSION_MISMATCH'].indexOf(code) >= 0;
+  }
+
+  async function request(action, options) {
     options = options || {};
     var requestId = uuid();
     var dedupeKey = options.dedupeKey || action;
@@ -60,7 +53,8 @@
         headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
         body: JSON.stringify({
           action: action,
-          apiKey: getKey(),
+          sessionToken: options.sessionToken === undefined ? sessionToken() : options.sessionToken,
+          elevatedToken: options.elevatedToken || '',
           requestId: requestId,
           params: options.params || {},
           payload: options.payload || {}
@@ -69,17 +63,39 @@
       var text = await response.text();
       var result;
       try { result = JSON.parse(text); }
-      catch (_error) { throw new ApiError('INVALID_RESPONSE', 'API 回應不是有效 JSON'); }
-      if (!result || typeof result.success !== 'boolean') throw new ApiError('INVALID_RESPONSE', 'API 回應格式不完整');
-      if (!result.success) throw new ApiError(result.code, result.message, result.data);
+      catch (_error) { throw new ApiError('INVALID_RESPONSE', '系統回應格式不完整'); }
+      if (!result || typeof result.success !== 'boolean') throw new ApiError('INVALID_RESPONSE', '系統回應格式不完整');
+      if (!result.success) {
+        var apiError = new ApiError(result.code, result.message, result.data);
+        if (isAuthFailure(apiError.code) && authFailureHandler) authFailureHandler(apiError);
+        throw apiError;
+      }
       return result;
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError('NETWORK_ERROR', error && error.message ? error.message : '無法連線到 API');
+      throw new ApiError('NETWORK_ERROR', '目前無法連線，請稍後再試');
     } finally {
       pending.delete(dedupeKey);
     }
   }
 
-  return Object.freeze({ ApiError: ApiError, saveKey: saveKey, getKey: getKey, clearKey: clearKey, call: call, keyName: KEY_NAME });
+  async function call(action, options) {
+    options = options || {};
+    var ttl = Number(options.cacheTtl) || 0;
+    var cacheKey = options.cacheKey || action + '|' + JSON.stringify(options.params || {}) + '|' + JSON.stringify(options.payload || {});
+    var cached = cache.get(cacheKey);
+    if (ttl > 0 && cached && Date.now() - cached.savedAt < ttl) return cached.value;
+    var result = await request(action, options);
+    if (ttl > 0) cache.set(cacheKey, { savedAt: Date.now(), value: result });
+    return result;
+  }
+
+  function invalidate(prefix) {
+    if (!prefix) { cache.clear(); return; }
+    cache.forEach(function (_value, key) { if (key.indexOf(prefix) >= 0) cache.delete(key); });
+  }
+
+  function onAuthFailure(handler) { authFailureHandler = typeof handler === 'function' ? handler : null; }
+
+  return Object.freeze({ ApiError: ApiError, call: call, invalidate: invalidate, onAuthFailure: onAuthFailure, uuid: uuid });
 });

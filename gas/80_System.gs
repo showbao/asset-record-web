@@ -261,9 +261,13 @@ function onOpen() {
       return;
     }
   } catch (ignore) {}
-  ui.createMenu('資產記錄 V8.4.0')
-    .addItem('安裝／修復 V8.4.0', 'installV84')
-    .addItem('輪替 Web API 金鑰', 'rotateApiKeyV83')
+  ui.createMenu('資產記錄 V8.5.0')
+    .addItem('安裝／修復 V8.5.0', 'installV85')
+    .addSeparator()
+    .addItem('設定／重設網頁登入帳密', 'showAuthCredentialDialogV85')
+    .addItem('解除登入鎖定', 'unlockWebLoginV85')
+    .addItem('登出所有裝置', 'logoutAllDevicesFromSheetV85')
+    .addItem('查看網頁登入狀態', 'showWebLoginStatusV85')
     .addSeparator()
     .addItem('更新匯率', 'refreshExchangeRatesOnly')
     .addItem('更新價格與淨值', 'refreshPricesOnly')
@@ -332,7 +336,7 @@ function validatePhase2InternalV82_() {
   var missingDates = expected.filter(function (date) { return actualDates.indexOf(date) < 0; });
   var extraDates = actualDates.filter(function (date) { return expected.indexOf(date) < 0; });
   var duplicateDates = duplicatesV82_(actualDates);
-  validationCheck_(checks, 'V8.2～V8.4 版本與欄位版本', ['8.2.0', '8.3.0', '8.3.1', '8.4.0'].indexOf(V81.VERSION) >= 0 && ['8.2', '8.3', '8.3.1', '8.4.0'].indexOf(V81.SCHEMA_VERSION) >= 0, { version: V81.VERSION, schema: V81.SCHEMA_VERSION });
+  validationCheck_(checks, 'V8.2～V8.5 版本與欄位版本', ['8.2.0', '8.3.0', '8.3.1', '8.4.0', '8.5.0'].indexOf(V81.VERSION) >= 0 && ['8.2', '8.3', '8.3.1', '8.4.0', '8.5.0'].indexOf(V81.SCHEMA_VERSION) >= 0, { version: V81.VERSION, schema: V81.SCHEMA_VERSION });
   validationCheck_(checks, '預期取樣日期完整', missingDates.length === 0 && extraDates.length === 0, { expected: expected.length, actual: actualDates.length, missing: missingDates, extra: extraDates });
   validationCheck_(checks, '取樣日期唯一', duplicateDates.length === 0, duplicateDates);
   var invalidLevels = snapshots.filter(function (row) { return sampleLevelV82_(row['取樣日期']) !== cleanText_(row['取樣級距']); }).map(function (row) { return dateKey_(row['取樣日期']); });

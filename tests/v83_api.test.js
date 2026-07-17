@@ -71,9 +71,9 @@ const context = vm.createContext({
 new vm.Script(source, { filename: 'asset-record-v83.gs' }).runInContext(context);
 const t = context.__test;
 
-assert.equal(t.V81.VERSION, '8.4.0');
-assert.equal(t.V81.SCHEMA_VERSION, '8.4.0');
-assert.equal(gasFiles.length, 14);
+assert.equal(t.V81.VERSION, '8.5.0');
+assert.equal(t.V81.SCHEMA_VERSION, '8.5.0');
+assert.equal(gasFiles.length, 19);
 assert.ok(gasFiles.includes('70_Api.gs'));
 assert.ok(!gasFiles.includes('61_TrendValidation.gs'));
 
@@ -114,19 +114,22 @@ assert.equal(Object.hasOwn(mappedTransaction, 'importBatchId'), false);
 assert.equal(JSON.stringify(mappedTransaction).includes('hidden'), false);
 
 const properties = t.memoryPropertiesV83_();
+properties.setProperty('AUTH_MODE', 'DUAL');
 const options = {
   expectedHash: hash,
   properties,
   settings: { NEEDS_RECALC: 'TRUE', DAILY_JOB_ENABLED: 'TRUE', DAILY_JOB_TIME: '07:30' }
 };
-const queued = t.handleApiRequestV83_({ action: 'requestRebuild', apiKey: key, requestId: 'req-1', params: {}, payload: {} }, options);
+const queued = t.requestJobApiV83_('rebuild', options);
 assert.equal(queued.success, true);
 assert.equal(queued.code, 'OK');
-assert.equal(queued.requestId, 'req-1');
 assert.equal(queued.data.rebuild.status, 'pending');
-const duplicate = t.handleApiRequestV83_({ action: 'requestRebuild', apiKey: key, requestId: 'req-2', params: {}, payload: {} }, options);
+const duplicate = t.requestJobApiV83_('rebuild', options);
 assert.equal(duplicate.success, true);
 assert.equal(duplicate.code, 'ALREADY_PENDING');
+const blockedLegacyRebuild = t.handleApiRequestV83_({ action: 'requestRebuild', apiKey: key, requestId: 'req-1', params: {}, payload: {} }, options);
+assert.equal(blockedLegacyRebuild.success, false);
+assert.equal(blockedLegacyRebuild.code, 'AUTH_REQUIRED');
 
 const invalidAction = t.handleApiRequestV83_({ action: 'missingAction', apiKey: key, requestId: 'req-3', params: {}, payload: {} }, options);
 assert.equal(invalidAction.code, 'ACTION_NOT_FOUND');
@@ -139,7 +142,7 @@ assert.equal(JSON.stringify(invalidKey).includes(hash), false);
 const health = JSON.parse(t.doGet().text);
 assert.equal(health.success, true);
 assert.equal(health.data.service, 'asset-record-api');
-assert.equal(health.data.version, '8.4.0');
+assert.equal(health.data.version, '8.5.0');
 assert.equal(JSON.stringify(health).includes('assetCode'), false);
 
 const badJson = JSON.parse(t.doPost({ postData: { contents: '{bad' } }).text);
@@ -148,6 +151,8 @@ const tooLarge = JSON.parse(t.doPost({ postData: { contents: 'x'.repeat(102401) 
 assert.equal(tooLarge.code, 'PAYLOAD_TOO_LARGE');
 
 const apiSource = fs.readFileSync(path.join(gasDir, '70_Api.gs'), 'utf8');
+assert.ok(apiSource.includes('properties.setProperty(V85_AUTH.PROPERTIES.MODE, V85_AUTH.MODE_DUAL)'));
+assert.ok(apiSource.includes("operations.requestRebuild = requestJobApiV83_('rebuild', apiOptions)"));
 for (const action of [
   'listAssets', 'getAsset', 'createAsset', 'updateAsset', 'disableAsset',
   'listTransactions', 'getTransaction', 'createTransaction', 'updateTransaction', 'deleteTransaction', 'restoreTransaction',
@@ -157,4 +162,4 @@ for (const action of [
 assert.equal(/return\s+apiResult_?V?83?_?\([^\n]*apiKey/i.test(apiSource), false);
 assert.equal(/onEdit\s*\(/.test(source), false);
 
-console.log(JSON.stringify({ ok: true, assertions: 43, gasFiles }, null, 2));
+console.log(JSON.stringify({ ok: true, assertions: 46, gasFiles }, null, 2));

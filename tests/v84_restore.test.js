@@ -85,8 +85,7 @@ const gasDir = path.resolve(__dirname, '..', 'gas');
 const gasSource = fs.readdirSync(gasDir).filter((name) => name.endsWith('.gs')).sort()
   .map((name) => fs.readFileSync(path.join(gasDir, name), 'utf8')).join('\n') + `
 globalThis.__test = {
-  V81, V83_PROPERTIES, V84_BACKUP, V84_RESTORE_DEFAULT_OPTIONS,
-  hashApiKeyV83_, issueRestoreElevatedTokenV84_, validateRestoreElevatedTokenV84_,
+  V81, V84_BACKUP, V84_RESTORE_DEFAULT_OPTIONS,
   normalizeRestoreOptionsV84_, restoreRequiredHeadersV84_, restoreSourceSheetByHeaders_,
   prepareRestore_, auditManagedDailyTrigger_, scheduledDailyJob
 };
@@ -119,15 +118,6 @@ const context = vm.createContext({
 new vm.Script(gasSource, { filename: 'asset-record-v84-restore.gs' }).runInContext(context);
 const t = context.__test;
 
-propertiesState[t.V83_PROPERTIES.API_KEY_HASH] = t.hashApiKeyV83_('current-api-key');
-const elevated = t.issueRestoreElevatedTokenV84_('current-api-key');
-assert.match(elevated.elevatedToken, /^elevated_/);
-assert.equal(elevated.expiresInSeconds, 600);
-assert.equal(t.validateRestoreElevatedTokenV84_(elevated.elevatedToken), true);
-assert.throws(() => t.issueRestoreElevatedTokenV84_('wrong-key'), (error) => error.apiCode === 'REAUTH_REQUIRED');
-propertiesState[t.V84_BACKUP.PROPERTIES.ELEVATED_TOKEN_EXPIRES_AT] = '1';
-assert.throws(() => t.validateRestoreElevatedTokenV84_(elevated.elevatedToken), (error) => error.apiCode === 'REAUTH_REQUIRED');
-
 const options = t.normalizeRestoreOptionsV84_({ refreshPrices: false, fullSnapshotRebuild: true });
 assert.equal(options.refreshPrices, false);
 assert.equal(options.fullSnapshotRebuild, true);
@@ -147,10 +137,9 @@ assert.equal(target.numberFormats[0].format, '@');
 assert.equal(targetBook.getSheetByName('投資標的'), target, '還原不得刪除或重建既有分頁');
 
 activeSpreadsheet = new FakeSpreadsheet('primary', [new FakeSheet('系統設定', [['設定項目', '設定值'], ['FILE_ROLE', 'PRIMARY']])]);
-propertiesState[t.V84_BACKUP.PROPERTIES.ELEVATED_TOKEN_EXPIRES_AT] = String(Date.now() + 600000);
 propertiesState[t.V84_BACKUP.PROPERTIES.SYSTEM_MODE] = t.V84_BACKUP.MODES.RESTORE_RUNNING;
 propertiesState[t.V84_BACKUP.PROPERTIES.RESTORE_OPERATION] = JSON.stringify({ operationId: 'RST-A', sourceBackupId: 'BKP-A', currentStage: 'PREPARED', status: 'RUNNING' });
-assert.throws(() => t.prepareRestore_('BKP-B', elevated.elevatedToken, {}), (error) => error.apiCode === 'RESTORE_ALREADY_RUNNING');
+assert.throws(() => t.prepareRestore_('BKP-B', {}), (error) => error.apiCode === 'RESTORE_ALREADY_RUNNING');
 assert.equal(propertiesState[t.V84_BACKUP.PROPERTIES.SYSTEM_MODE], t.V84_BACKUP.MODES.RESTORE_RUNNING, '衝突請求不得清除既有還原鎖');
 const settingsBeforeScheduledSkip = JSON.stringify(activeSpreadsheet.getSheetByName('系統設定').values);
 const skippedJob = t.scheduledDailyJob();

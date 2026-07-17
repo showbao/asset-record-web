@@ -49,11 +49,6 @@ function routeBackupApiActionV84_(action, params, payload, requestId) {
 }
 
 function routeRestoreApiActionV84_(action, params, payload) {
-  if (action === 'restore.elevate') {
-    ensureAllowedKeysV83_(params || {}, [], 'params');
-    payload = backupApiPayloadV84_(payload, ['credential']);
-    return apiResult_(true, 'OK', '高權限操作驗證完成', issueRestoreElevatedTokenV84_(payload.credential));
-  }
   if (action === 'restore.preview') {
     params = ensureAllowedKeysV83_(params || {}, ['backupId'], 'params');
     backupApiPayloadV84_(payload, []);
@@ -61,8 +56,8 @@ function routeRestoreApiActionV84_(action, params, payload) {
   }
   if (action === 'restore.prepare') {
     ensureAllowedKeysV83_(params || {}, [], 'params');
-    payload = backupApiPayloadV84_(payload, ['backupId', 'elevatedToken', 'options']);
-    return apiResult_(true, 'OK', '還原前緊急備份已建立並通過驗證', prepareRestore_(payload.backupId, payload.elevatedToken, payload.options || {}));
+    payload = backupApiPayloadV84_(payload, ['backupId', 'options']);
+    return apiResult_(true, 'OK', '還原前緊急備份已建立並通過驗證', prepareRestore_(payload.backupId, payload.options || {}));
   }
   if (action === 'restore.apply') {
     ensureAllowedKeysV83_(params || {}, [], 'params');
@@ -84,13 +79,14 @@ function routeRestoreApiActionV84_(action, params, payload) {
   }
   if (action === 'restore.rollback') {
     ensureAllowedKeysV83_(params || {}, [], 'params');
-    payload = backupApiPayloadV84_(payload, ['operationId', 'elevatedToken']);
-    return apiResult_(true, 'OK', '已準備使用還原前緊急備份回復', rollbackRestore_(payload.operationId, payload.elevatedToken));
+    payload = backupApiPayloadV84_(payload, ['operationId']);
+    return apiResult_(true, 'OK', '已準備使用還原前緊急備份回復', rollbackRestore_(payload.operationId));
   }
   throwBackupRestoreErrorV84_('ACTION_NOT_FOUND', '不支援的還原 action：' + action);
 }
 
 function installV84() {
+  if (/^8\.5\./.test(V81.VERSION) && typeof installV85 === 'function') return installV85();
   var generatedKey = '';
   try {
     var result = withDocumentLock_(function () {
@@ -114,7 +110,7 @@ function installV84() {
         FILE_ROLE: V84_BACKUP.FILE_ROLE_PRIMARY
       });
       onOpen();
-      return apiResult_(true, 'OK', 'V8.4.0 安裝完成', {
+      return apiResult_(true, 'OK', 'V8.5.0 安裝完成', {
         schema: schema,
         sequences: sequences,
         trigger: trigger,

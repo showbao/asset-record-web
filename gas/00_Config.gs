@@ -1,6 +1,6 @@
 const V81 = Object.freeze({
-  VERSION: '8.4.0',
-  SCHEMA_VERSION: '8.4.0',
+  VERSION: '8.5.0',
+  SCHEMA_VERSION: '8.5.0',
   TIMEZONE: 'Asia/Taipei',
   BASE_CURRENCY: 'TWD',
   LOCK_TIMEOUT_MS: 30000,
@@ -47,8 +47,8 @@ const V81 = Object.freeze({
   CURRENCIES: Object.freeze(['TWD', 'USD', 'JPY']),
   CASH_FLOW_TYPES: Object.freeze(['入金', '出金']),
   SETTINGS: Object.freeze({
-    SYSTEM_VERSION: '8.4.0',
-    SCHEMA_VERSION: '8.4.0',
+    SYSTEM_VERSION: '8.5.0',
+    SCHEMA_VERSION: '8.5.0',
     FILE_ROLE: 'PRIMARY',
     TIMEZONE: 'Asia/Taipei',
     BASE_CURRENCY: 'TWD',
