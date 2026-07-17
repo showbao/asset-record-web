@@ -93,7 +93,10 @@ assert.equal(/cleanNullableNumberV831_[\s\S]*?getTime\s*\(/.test(apiSource.slice
 assert.equal(/(?:原幣|TWD|本輪|終身)[_（( ]*XIRR|XIRR[_（( ]*(?:原幣|TWD|本輪|終身)/.test(source), false);
 assert.equal(/V81\.VERSION === '8\.3\.1' && V81\.SCHEMA_VERSION === '8\.3\.1'/.test(apiSource), false);
 assert.match(apiSource, /\['8\.3\.1', '8\.4\.0'\]\.indexOf\(V81\.VERSION\)/);
+const validationSource = apiSource.slice(apiSource.indexOf('function validateV831PerformanceAndApi'), apiSource.indexOf('function runPhase3ValidationV83_'));
+assert.match(validationSource, /LAST_VALIDATION_STATUS: result\.success \? 'PASS' : 'FAIL'/);
+assert.match(validationSource, /LAST_VALIDATION_STATUS: 'ERROR'/);
 const systemSource = fs.readFileSync(path.join(gasDir, '80_System.gs'), 'utf8');
 assert.match(systemSource, /\['8\.2\.0', '8\.3\.0', '8\.3\.1', '8\.4\.0'\]\.indexOf\(V81\.VERSION\)/);
 
-console.log(JSON.stringify({ ok: true, assertions: 48, version: t.V81.VERSION }, null, 2));
+console.log(JSON.stringify({ ok: true, assertions: 50, version: t.V81.VERSION }, null, 2));

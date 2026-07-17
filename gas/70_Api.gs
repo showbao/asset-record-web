@@ -962,9 +962,14 @@ function validateV831PerformanceAndApi() {
       invalidValueDetails: invalidValueDetails,
       checks: checks
     });
+    setSettingValues_({
+      LAST_VALIDATION_AT: nowSheet_(),
+      LAST_VALIDATION_STATUS: result.success ? 'PASS' : 'FAIL'
+    });
     console.log(JSON.stringify(result));
     return result;
   } catch (error) {
+    setSettingValues_({ LAST_VALIDATION_AT: nowSheet_(), LAST_VALIDATION_STATUS: 'ERROR' });
     var failure = apiResult_(false, 'VALIDATION_V831_ERROR', error.message, { stack: error.stack || '' });
     console.log(JSON.stringify(failure));
     return failure;
